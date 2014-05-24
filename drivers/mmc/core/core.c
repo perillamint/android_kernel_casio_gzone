@@ -10,6 +10,10 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -330,7 +334,9 @@ void mmc_start_bkops(struct mmc_card *card, bool from_exception)
 	if (!card->ext_csd.bkops_en)
 		return;
 
-	mmc_claim_host(card->host);
+	
+	if( !mmc_try_claim_host(card->host))
+		return;
 
 	if ((card->bkops_info.cancel_delayed_work) && !from_exception) {
 		pr_debug("%s: %s: cancel_delayed_work was set, exit\n",
@@ -377,7 +383,7 @@ void mmc_start_bkops(struct mmc_card *card, bool from_exception)
 		pr_debug("%s: %s: Level %d from exception, exit",
 			 mmc_hostname(card->host), __func__,
 			 card->ext_csd.raw_bkops_status);
-		mmc_card_set_need_bkops(card);
+				mmc_card_set_need_bkops(card);
 		goto out;
 	}
 	pr_info("%s: %s: Starting bkops\n", mmc_hostname(card->host), __func__);
@@ -429,17 +435,17 @@ void mmc_bkops_completion_polling(struct work_struct *work)
 	 * the host from getting into suspend
 	 */
 	do {
-		mmc_claim_host(card->host);
+	mmc_claim_host(card->host);
 
 		if (!mmc_card_doing_bkops(card))
 			goto out;
 
 		err = mmc_send_status(card, &status);
-		if (err) {
+	if (err) {
 			pr_err("%s: error %d requesting status\n",
-			       mmc_hostname(card->host), err);
-			goto out;
-		}
+			   mmc_hostname(card->host), err);
+		goto out;
+	}
 
 		/*
 		 * Some cards mishandle the status bits, so make sure to check
@@ -456,10 +462,10 @@ void mmc_bkops_completion_polling(struct work_struct *work)
 
 		mmc_release_host(card->host);
 
-		/*
+	/*
 		 * Sleep before checking the card status again to allow the
 		 * card to complete the BKOPs operation
-		 */
+	 */
 		msleep(BKOPS_COMPLETION_POLLING_INTERVAL_MS);
 	} while (time_before(jiffies, timeout_jiffies));
 
@@ -757,13 +763,13 @@ int mmc_wait_for_cmd(struct mmc_host *host, struct mmc_command *cmd, int retries
 EXPORT_SYMBOL(mmc_wait_for_cmd);
 
 /**
- *	mmc_stop_bkops - stop ongoing BKOPS
+ *	mmc_interrupt_bkops - interrupt ongoing BKOPS
  *	@card: MMC card to check BKOPS
  *
- *	Send HPI command to stop ongoing background operations to
- *	allow rapid servicing of foreground operations, e.g. read/
+ *	Send HPI command to interrupt ongoing background operations,
+ *	to allow rapid servicing of foreground operations,e.g. read/
  *	writes. Wait until the card comes out of the programming state
- *      to avoid errors in servicing read/write requests.
+ *	to avoid errors in servicing read/write requests.
  *
  *      The function should be called with host claimed.
  */
@@ -790,7 +796,7 @@ int mmc_stop_bkops(struct mmc_card *card)
 	 * It should complete the BKOPS.
 	 */
 	if (!err || (err == -EINVAL)) {
-		mmc_card_clr_doing_bkops(card);
+	mmc_card_clr_doing_bkops(card);
 		err = 0;
 	}
 
@@ -886,7 +892,10 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 			 */
 			limit_us = 3000000;
 		else
-			limit_us = 100000;
+
+			limit_us = 250000;
+
+
 
 		/*
 		 * SDHC cards always use these fixed values.
@@ -1482,7 +1491,7 @@ void mmc_power_up(struct mmc_host *host)
 		bit = fls(host->ocr_avail) - 1;
 
 	host->ios.vdd = bit;
-	if (mmc_host_is_spi(host))
+	if (mmc_host_is_spi(host)) 
 		host->ios.chip_select = MMC_CS_HIGH;
 	else {
 		host->ios.chip_select = MMC_CS_DONTCARE;
@@ -1519,7 +1528,7 @@ void mmc_power_off(struct mmc_host *host)
 
 	host->ios.clock = 0;
 	host->ios.vdd = 0;
-
+	
 
 	/*
 	 * Reset ocr mask to be the highest possible voltage supported for
@@ -1544,6 +1553,11 @@ void mmc_power_off(struct mmc_host *host)
 	mmc_delay(1);
 
 	mmc_host_clk_release(host);
+
+	if (host->card && mmc_card_sd(host->card)) {
+		mdelay(5);
+	}
+
 }
 
 /*
@@ -2190,10 +2204,10 @@ int mmc_can_reset(struct mmc_card *card)
 		return 0;
 
 	if (mmc_card_mmc(card)) {
-		rst_n_function = card->ext_csd.rst_n_function;
+	rst_n_function = card->ext_csd.rst_n_function;
 		if ((rst_n_function & EXT_CSD_RST_N_EN_MASK) !=
 		    EXT_CSD_RST_N_ENABLED)
-			return 0;
+		return 0;
 	}
 	return 1;
 }

@@ -13,6 +13,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 #ifndef __ASM_ARCH_MSM_GPIO_H
 #define __ASM_ARCH_MSM_GPIO_H
 
@@ -21,6 +25,12 @@
 #include <linux/interrupt.h>
 #include <asm-generic/gpio.h>
 #include <mach/irqs.h>
+
+#define CONFIG_DVE068_WIRELESS_CHG
+#define CONFIG_DVE068_CRADLE_CHG
+
+#define GPIO_WIRELESS_CHG_INT 14
+#define GPIO_CRADLE_CHG_INT 78
 
 #define FIRST_BOARD_GPIO	NR_GPIO_IRQS
 

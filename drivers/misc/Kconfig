@@ -1,3 +1,8 @@
+#/**********************************************************************
+#* File Name: drivers/misc/Kconfig
+#* 
+#* (C) NEC CASIO Mobile Communications, Ltd. 2013
+#**********************************************************************/
 #
 # Misc strange devices
 #
@@ -661,4 +666,12 @@ source "drivers/misc/ti-st/Kconfig"
 source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
+
+config ST21NFCA
+	bool "ST Microelectronics ST21NFCA NFC Controller Driver"
+	depends on I2C && GENERIC_GPIO
+	default n
+	help
+	  ST Microelectronics ST21NFCA Near Field Communication controller support.
+
 endmenu

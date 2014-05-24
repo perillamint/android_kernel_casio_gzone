@@ -10,6 +10,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 /*
  * QUP driver for Qualcomm MSM platforms
  *
@@ -208,8 +212,8 @@ qup_i2c_interrupt(int irq, void *devid)
 	}
 
 	if (status & I2C_STATUS_ERROR_MASK) {
-		dev_err(dev->dev, "QUP: I2C status flags :0x%x, irq:%d\n",
-			status, irq);
+
+
 		err = status;
 		/* Clear Error interrupt if it's a level triggered interrupt*/
 		if (dev->num_irqs == 1) {
@@ -329,13 +333,13 @@ qup_i2c_pwr_mgmt(struct qup_i2c_dev *dev, unsigned int state)
 	if (state != 0) {
 		clk_enable(dev->clk);
 		if (!dev->pdata->keep_ahb_clk_on)
-			clk_enable(dev->pclk);
+		clk_enable(dev->pclk);
 	} else {
 		qup_update_state(dev, QUP_RESET_STATE);
 		clk_disable(dev->clk);
 		qup_config_core_on_en(dev);
 		if (!dev->pdata->keep_ahb_clk_on)
-			clk_disable(dev->pclk);
+		clk_disable(dev->pclk);
 	}
 }
 
@@ -980,9 +984,9 @@ timeout_err:
 			if (dev->err) {
 				if (dev->err > 0 &&
 					dev->err & QUP_I2C_NACK_FLAG) {
-					dev_err(dev->dev,
-					"I2C slave addr:0x%x not connected\n",
-					dev->msg->addr);
+
+
+
 					dev->err = ENOTCONN;
 				} else if (dev->err < 0) {
 					dev_err(dev->dev,
@@ -1403,7 +1407,7 @@ qup_i2c_remove(struct platform_device *pdev)
 	i2c_del_adapter(&dev->adapter);
 	clk_unprepare(dev->clk);
 	if (!dev->pdata->keep_ahb_clk_on) {
-		clk_unprepare(dev->pclk);
+	clk_unprepare(dev->pclk);
 		clk_put(dev->pclk);
 	}
 	clk_put(dev->clk);
@@ -1443,7 +1447,7 @@ static int qup_i2c_suspend(struct device *device)
 		qup_i2c_pwr_mgmt(dev, 0);
 	clk_unprepare(dev->clk);
 	if (!dev->pdata->keep_ahb_clk_on)
-		clk_unprepare(dev->pclk);
+	clk_unprepare(dev->pclk);
 	qup_i2c_free_gpios(dev);
 	return 0;
 }
@@ -1455,7 +1459,7 @@ static int qup_i2c_resume(struct device *device)
 	BUG_ON(qup_i2c_request_gpios(dev) != 0);
 	clk_prepare(dev->clk);
 	if (!dev->pdata->keep_ahb_clk_on)
-		clk_prepare(dev->pclk);
+	clk_prepare(dev->pclk);
 	dev->suspended = 0;
 	return 0;
 }

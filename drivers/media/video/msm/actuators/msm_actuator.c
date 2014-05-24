@@ -9,9 +9,22 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/module.h>
 #include "msm_actuator.h"
+
+
+#define CAMTSE_LENS_STEP_LOG_OUT		0
+
+
+
+#define REG_VCM_NEW_CODE			0x30F2
+#define REG_VCM_STEP_TIME			0x30F4
+
 
 static struct msm_actuator_ctrl_t msm_actuator_t;
 
@@ -64,56 +77,79 @@ int32_t msm_actuator_piezo_set_default_focus(
 int32_t msm_actuator_i2c_write(struct msm_actuator_ctrl_t *a_ctrl,
 	int16_t next_lens_position, uint32_t hw_params)
 {
-	struct msm_actuator_reg_params_t *write_arr = a_ctrl->reg_tbl;
-	uint32_t hw_dword = hw_params;
-	uint16_t i2c_byte1 = 0, i2c_byte2 = 0;
-	uint16_t value = 0;
-	uint32_t size = a_ctrl->reg_tbl_size, i = 0;
+
+
 	int32_t rc = 0;
-	CDBG("%s: IN\n", __func__);
-	for (i = 0; i < size; i++) {
-		if (write_arr[i].reg_write_type == MSM_ACTUATOR_WRITE_DAC) {
-			value = (next_lens_position <<
-				write_arr[i].data_shift) |
-				((hw_dword & write_arr[i].hw_mask) >>
-				write_arr[i].hw_shift);
 
-			if (write_arr[i].reg_addr != 0xFFFF) {
-				i2c_byte1 = write_arr[i].reg_addr;
-				i2c_byte2 = value;
-				if (size != (i+1)) {
-					i2c_byte2 = (i2c_byte2 & 0xFF00) >> 8;
-					CDBG("%s: byte1:0x%x, byte2:0x%x\n",
-					__func__, i2c_byte1, i2c_byte2);
-					rc = msm_camera_i2c_write(
-						&a_ctrl->i2c_client,
-						i2c_byte1, i2c_byte2,
-						a_ctrl->i2c_data_type);
-					if (rc < 0) {
-						pr_err("%s: i2c write error:%d\n",
-							__func__, rc);
-						return rc;
-					}
-
-					i++;
-					i2c_byte1 = write_arr[i].reg_addr;
-					i2c_byte2 = value & 0xFF;
-				}
-			} else {
-				i2c_byte1 = (value & 0xFF00) >> 8;
-				i2c_byte2 = value & 0xFF;
-			}
-		} else {
-			i2c_byte1 = write_arr[i].reg_addr;
-			i2c_byte2 = (hw_dword & write_arr[i].hw_mask) >>
-				write_arr[i].hw_shift;
-		}
-		CDBG("%s: i2c_byte1:0x%x, i2c_byte2:0x%x\n", __func__,
-			i2c_byte1, i2c_byte2);
-		rc = msm_camera_i2c_write(&a_ctrl->i2c_client,
-			i2c_byte1, i2c_byte2, a_ctrl->i2c_data_type);
+	rc = msm_camera_i2c_write(&a_ctrl->i2c_client,
+				REG_VCM_STEP_TIME,
+				hw_params,
+				MSM_CAMERA_I2C_WORD_DATA);
+	if(rc < 0){
+		pr_err("%s: X  I2C write failed \n", __func__);
+		return rc;
 	}
-		CDBG("%s: OUT\n", __func__);
+	rc = msm_camera_i2c_write(&a_ctrl->i2c_client,
+				REG_VCM_NEW_CODE,
+				next_lens_position,
+				MSM_CAMERA_I2C_WORD_DATA);
+	if(rc < 0){
+		pr_err("%s: X  I2C write failed \n", __func__);
+		return rc;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	return rc;
 }
 
@@ -167,6 +203,9 @@ int32_t msm_actuator_write_focus(
 
 	damping_code_step = damping_params->damping_step;
 	wait_time = damping_params->damping_delay;
+
+	CDBG("%s: damping_code_step:%d, wait_time:%d, code_bound:%d\n",
+		__func__, damping_code_step, wait_time, code_boundary);
 
 	/* Write code based on damping_code_step in a loop */
 	for (next_lens_pos =
@@ -240,6 +279,13 @@ int32_t msm_actuator_move_focus(
 	if (dest_step_pos == a_ctrl->curr_step_pos)
 		return rc;
 
+
+	if(a_ctrl->step_position_table == NULL){
+		pr_err("%s: step_position_table failed (null)\n",__func__);
+		return -EINVAL;
+	}
+
+
 	curr_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
 	CDBG("curr_step_pos =%d dest_step_pos =%d curr_lens_pos=%d\n",
 		a_ctrl->curr_step_pos, dest_step_pos, curr_lens_pos);
@@ -254,8 +300,12 @@ int32_t msm_actuator_move_focus(
 			target_step_pos = dest_step_pos;
 			target_lens_pos =
 				a_ctrl->step_position_table[target_step_pos];
-			if (curr_lens_pos == target_lens_pos)
-				return rc;
+
+
+
+
+
+
 			rc = a_ctrl->func_tbl->
 				actuator_write_focus(
 					a_ctrl,
@@ -276,8 +326,12 @@ int32_t msm_actuator_move_focus(
 			target_step_pos = step_boundary;
 			target_lens_pos =
 				a_ctrl->step_position_table[target_step_pos];
-			if (curr_lens_pos == target_lens_pos)
-				return rc;
+
+
+
+
+
+
 			rc = a_ctrl->func_tbl->
 				actuator_write_focus(
 					a_ctrl,
@@ -307,15 +361,25 @@ int32_t msm_actuator_init_step_table(struct msm_actuator_ctrl_t *a_ctrl,
 {
 	int16_t code_per_step = 0;
 	int32_t rc = 0;
-	int16_t cur_code = 0;
+
+
+	int32_t cur_code = 0;
+
+
+
+
 	int16_t step_index = 0, region_index = 0;
 	uint16_t step_boundary = 0;
-	uint32_t max_code_size = 1;
-	uint16_t data_size = set_info->actuator_params.data_size;
-	CDBG("%s called\n", __func__);
 
-	for (; data_size > 0; data_size--)
-		max_code_size *= 2;
+
+
+
+
+
+
+
+
+
 
 	kfree(a_ctrl->step_position_table);
 	a_ctrl->step_position_table = NULL;
@@ -330,6 +394,11 @@ int32_t msm_actuator_init_step_table(struct msm_actuator_ctrl_t *a_ctrl,
 
 	cur_code = set_info->af_tuning_params.initial_code;
 	a_ctrl->step_position_table[step_index++] = cur_code;
+
+
+	cur_code = cur_code << 8;
+
+
 	for (region_index = 0;
 		region_index < a_ctrl->region_size;
 		region_index++) {
@@ -341,22 +410,38 @@ int32_t msm_actuator_init_step_table(struct msm_actuator_ctrl_t *a_ctrl,
 		for (; step_index <= step_boundary;
 			step_index++) {
 			cur_code += code_per_step;
-			if (cur_code < max_code_size)
-				a_ctrl->step_position_table[step_index] =
-					cur_code;
-			else {
-				for (; step_index <
-					set_info->af_tuning_params.total_steps;
-					step_index++)
-					a_ctrl->
-						step_position_table[
-						step_index] =
-						max_code_size;
 
-				return rc;
-			}
+
+			a_ctrl->step_position_table[step_index] =
+				cur_code >> 8;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		}
 	}
+
+#if CAMTSE_LENS_STEP_LOG_OUT
+	for (step_index = 0; step_index <= step_boundary ; step_index++) {
+		pr_err("step_position_table[%d]= %d\n",
+			step_index,
+			a_ctrl->step_position_table[step_index]);
+	}
+#endif
+
 
 	return rc;
 }
@@ -469,9 +554,19 @@ int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 	}
 
 	a_ctrl->initial_code = set_info->af_tuning_params.initial_code;
-	if (a_ctrl->func_tbl->actuator_init_step_table)
-		rc = a_ctrl->func_tbl->
-			actuator_init_step_table(a_ctrl, set_info);
+
+
+	if (set_info->is_af_calib) {
+		if (a_ctrl->func_tbl->actuator_init_step_table)
+			rc = a_ctrl->func_tbl->
+				actuator_init_step_table(a_ctrl, set_info);
+	}
+
+
+
+
+
+
 
 	a_ctrl->curr_step_pos = 0;
 	a_ctrl->curr_region_index = 0;

@@ -15,6 +15,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/init.h>
 #include <linux/module.h>
@@ -1080,29 +1084,59 @@ struct mass_storage_function_config {
 static int mass_storage_function_init(struct android_usb_function *f,
 					struct usb_composite_dev *cdev)
 {
-	struct android_dev *dev = _android_dev;
+
+
+
+
+
 	struct mass_storage_function_config *config;
 	struct fsg_common *common;
 	int err;
 	int i;
-	const char *name[2];
+
+
+	const char *name[3];
+
+
+
+
 
 	config = kzalloc(sizeof(struct mass_storage_function_config),
 								GFP_KERNEL);
 	if (!config)
 		return -ENOMEM;
 
-	config->fsg.nluns = 1;
-	name[0] = "lun";
-	if (dev->pdata->cdrom) {
-		config->fsg.nluns = 2;
-		config->fsg.luns[1].cdrom = 1;
-		config->fsg.luns[1].ro = 1;
-		config->fsg.luns[1].removable = 0;
-		name[1] = "lun0";
-	}
 
+
+	config->fsg.nluns = 2;
 	config->fsg.luns[0].removable = 1;
+	config->fsg.luns[1].removable = 1;
+	name[0] = "lun";
+	name[1] = "lun1";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	common = fsg_common_init(NULL, cdev, &config->fsg);
 	if (IS_ERR(common)) {
@@ -1120,6 +1154,9 @@ static int mass_storage_function_init(struct android_usb_function *f,
 
 	config->common = common;
 	f->config = config;
+
+	pr_err("'%s' [END] \n", __func__);
+
 	return 0;
 error:
 	for (; i > 0 ; i--)
@@ -1179,6 +1216,104 @@ static struct android_usb_function mass_storage_function = {
 	.bind_config	= mass_storage_function_bind_config,
 	.attributes	= mass_storage_function_attributes,
 };
+
+
+struct usb_cdrom_function_config {
+	struct fsg_config fsg;
+	struct fsg_common *common;
+};
+
+static const char usb_cdrom_kthread_name[] = "kcdrom";
+static const char cdrom_lun_format[] = "clun%d";
+
+static int usb_cdrom_function_init(struct android_usb_function *f,
+					struct usb_composite_dev *cdev)
+{
+	struct usb_cdrom_function_config *config;
+	struct fsg_common *common;
+	int err;
+
+	config = kzalloc(sizeof(struct usb_cdrom_function_config),
+								GFP_KERNEL);
+	if (!config)
+		return -ENOMEM;
+
+	config->fsg.nluns = 1;
+	config->fsg.luns[0].removable = 1;
+	config->fsg.luns[0].cdrom = 1;
+	config->fsg.thread_name = usb_cdrom_kthread_name;
+	config->fsg.lun_name_format = cdrom_lun_format;
+
+	common = fsg_common_init(NULL, cdev, &config->fsg);
+	if (IS_ERR(common)) {
+		kfree(config);
+		return PTR_ERR(common);
+	}
+
+	err = sysfs_create_link(&f->dev->kobj,
+				&common->luns[0].dev.kobj,
+				"lun");
+	if (err) {
+		fsg_common_release(&common->ref);
+		kfree(config);
+		return err;
+	}
+
+	config->common = common;
+	f->config = config;
+	return 0;
+}
+
+static void usb_cdrom_function_cleanup(struct android_usb_function *f)
+{
+	kfree(f->config);
+	f->config = NULL;
+}
+
+static int usb_cdrom_function_bind_config(struct android_usb_function *f,
+						struct usb_configuration *c)
+{
+	struct usb_cdrom_function_config *config = f->config;
+	return usb_cdrom_bind_config(c->cdev, c, config->common);
+}
+
+static ssize_t usb_cdrom_inquiry_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct android_usb_function *f = dev_get_drvdata(dev);
+	struct usb_cdrom_function_config *config = f->config;
+	return snprintf(buf, PAGE_SIZE, "%s\n", config->common->inquiry_string);
+}
+
+static ssize_t usb_cdrom_inquiry_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct android_usb_function *f = dev_get_drvdata(dev);
+	struct usb_cdrom_function_config *config = f->config;
+	if (size >= sizeof(config->common->inquiry_string))
+		return -EINVAL;
+	if (sscanf(buf, "%28s", config->common->inquiry_string) != 1)
+		return -EINVAL;
+	return size;
+}
+
+static DEVICE_ATTR(usb_cdrom_inquiry_string, S_IRUGO | S_IWUSR,
+		usb_cdrom_inquiry_show,
+		usb_cdrom_inquiry_store);
+
+static struct device_attribute *usb_cdrom_function_attributes[] = {
+	&dev_attr_usb_cdrom_inquiry_string,
+	NULL
+};
+
+static struct android_usb_function usb_cdrom_function = {
+	.name		= "usb_cdrom",
+	.init		= usb_cdrom_function_init,
+	.cleanup	= usb_cdrom_function_cleanup,
+	.bind_config	= usb_cdrom_function_bind_config,
+	.attributes	= usb_cdrom_function_attributes,
+};
+
 
 
 static int accessory_function_init(struct android_usb_function *f,
@@ -1291,6 +1426,9 @@ static struct android_usb_function *supported_functions[] = {
 	&ptp_function,
 	&rndis_function,
 	&mass_storage_function,
+
+	&usb_cdrom_function,
+
 	&accessory_function,
 	&audio_source_function,
 	NULL

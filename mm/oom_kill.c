@@ -16,6 +16,10 @@
  *  for newbie kernel hackers. It features several pointers to major
  *  kernel subsystems and hints as to where to find out what things do.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/oom.h>
 #include <linux/mm.h>
@@ -41,7 +45,10 @@
 
 int sysctl_panic_on_oom;
 int sysctl_oom_kill_allocating_task;
-int sysctl_oom_dump_tasks = 1;
+
+
+int sysctl_oom_dump_tasks = 2;
+
 static DEFINE_SPINLOCK(zone_scan_lock);
 
 /*
@@ -418,6 +425,33 @@ static void dump_tasks(const struct mem_cgroup *memcg, const nodemask_t *nodemas
 	}
 }
 
+static void dump_tasks_adj(const struct mem_cgroup *mem, const nodemask_t *nodemask)
+{
+        struct task_struct *p;
+        struct task_struct *task;
+
+        pr_info("[ pid ]   uid  tgid total_vm      rss cpu oom_adj name\n");
+        for_each_process(p) {
+                if (oom_unkillable_task(p, mem, nodemask))
+                        continue;
+
+                task = find_lock_task_mm(p);
+
+                if (!task) { 
+                        continue;
+                }
+
+                if (task->signal->oom_adj < 0) {
+                        pr_info("[%5d] %5d %5d %8lu %8lu %3u     %3d         %s\n",
+                            task->pid, task_uid(task), task->tgid,
+                            task->mm->total_vm, get_mm_rss(task->mm),
+                            task_cpu(task), task->signal->oom_adj,
+                            task->comm);
+                }
+                task_unlock(task);
+        }
+}
+
 static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
 			struct mem_cgroup *memcg, const nodemask_t *nodemask)
 {
@@ -431,8 +465,15 @@ static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
 	dump_stack();
 	mem_cgroup_print_oom_info(memcg, p);
 	show_mem(SHOW_MEM_FILTER_NODES);
-	if (sysctl_oom_dump_tasks)
-		dump_tasks(memcg, nodemask);
+
+
+
+    if (sysctl_oom_dump_tasks == 1)
+        dump_tasks(memcg, nodemask);
+    else if (sysctl_oom_dump_tasks == 2){
+        dump_tasks_adj(memcg, nodemask);
+    }
+
 }
 
 #define K(x) ((x) << (PAGE_SHIFT-10))

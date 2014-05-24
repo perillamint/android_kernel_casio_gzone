@@ -10,6 +10,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -70,6 +74,22 @@ static struct vsycn_ctrl {
 	int vsync_irq_enabled;
 	ktime_t vsync_time;
 } vsync_ctrl_db[MAX_CONTROLLER];
+
+
+
+
+
+
+int mdp4_overlay_dsi_state_get(void)
+{
+	int cndx = 0;
+	struct vsycn_ctrl *vctrl;
+
+	vctrl = &vsync_ctrl_db[cndx];
+
+	return (atomic_read(&vctrl->suspend) > 0) ? ST_DSI_SUSPEND : ST_DSI_RESUME;
+}
+
 
 static void vsync_irq_enable(int intr, int term)
 {
@@ -541,6 +561,11 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 	} else {
 		pipe = vctrl->base_pipe;
 	}
+	
+
+	pipe->mfd = mfd;
+
+	
 
 	if (!(mfd->cont_splash_done)) {
 		long long vtime;
@@ -686,7 +711,7 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	atomic_set(&vctrl->suspend, 1);
 	atomic_set(&vctrl->vsync_resume, 0);
 
-	msleep(20);	/* >= 17 ms */
+		msleep(20);	
 
 	complete_all(&vctrl->vsync_comp);
 
@@ -705,6 +730,10 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 
 	dsi_video_enabled = 0;
 
+	
+	mdelay(200);
+	
+
 	if (vctrl->vsync_irq_enabled) {
 		vctrl->vsync_irq_enabled = 0;
 		vsync_irq_disable(INTR_PRIMARY_VSYNC, MDP_PRIM_VSYNC_TERM);
@@ -719,7 +748,6 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 		 */
 		vp->update_cnt = 0;     /* empty queue */
 	}
-
 	if (pipe) {
 		/* sanity check, free pipes besides base layer */
 		mdp4_overlay_unset_mixer(pipe->mixer_num);
@@ -1004,11 +1032,11 @@ static void mdp4_dsi_video_do_blt(struct msm_fb_data_type *mfd, int enable)
 		return;
 
 	if (pipe->ov_blt_addr == 0) {
-		mdp4_allocate_writeback_buf(mfd, MDP4_MIXER0);
-		if (mfd->ov0_wb_buf->write_addr == 0) {
+	mdp4_allocate_writeback_buf(mfd, MDP4_MIXER0);
+	if (mfd->ov0_wb_buf->write_addr == 0) {
 			pr_warning("%s: no blt_base assigned\n", __func__);
-			return;
-		}
+		return;
+	}
 	}
 
 	pr_debug("%s: mode=%d, enable=%d ov_blt_addr=%x\n",
@@ -1041,8 +1069,8 @@ static void mdp4_dsi_video_do_blt(struct msm_fb_data_type *mfd, int enable)
 		} else {
 			pr_debug("%s: blt switched in ISR dsi_video_enabled=%d\n",
 				__func__, dsi_video_enabled);
-			vctrl->blt_change++;
-		}
+		vctrl->blt_change++;
+	}
 		spin_unlock_irqrestore(&vctrl->spin_lock, flag);
 		if (dsi_video_enabled)
 			mdp4_dsi_video_wait4dmap_done(0);
@@ -1131,7 +1159,7 @@ void mdp4_dsi_video_overlay(struct msm_fb_data_type *mfd)
 	cnt = mdp4_dsi_video_pipe_commit(cndx, 0);
 
 	if (cnt) {
-		if (pipe->ov_blt_addr)
+	if (pipe->ov_blt_addr)
 			mdp4_dsi_video_wait4ov(cndx);
 		else
 			mdp4_dsi_video_wait4dmap(cndx);

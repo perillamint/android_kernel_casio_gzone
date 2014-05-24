@@ -20,6 +20,10 @@
    COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 /* Bluetooth HCI Management interface */
 
@@ -229,7 +233,9 @@ static int read_controller_info(struct sock *sk, u16 index)
 
 	memcpy(rp.name, hdev->dev_name, sizeof(hdev->dev_name));
 
+
 	rp.le_white_list_size = hdev->le_white_list_size;
+
 
 	hci_dev_unlock_bh(hdev);
 	hci_dev_put(hdev);
@@ -1452,6 +1458,7 @@ failed:
 	return err;
 }
 
+
 static int le_add_dev_white_list(struct sock *sk, u16 index,
 					unsigned char *data, u16 len)
 {
@@ -1630,6 +1637,8 @@ failed:
 
 	return err;
 }
+
+
 
 static int set_io_capability(struct sock *sk, u16 index, unsigned char *data,
 									u16 len)
@@ -2073,6 +2082,41 @@ failed:
 	return err;
 }
 
+
+static int le_cancel_create_conn(struct sock *sk, u16 index,
+							unsigned char *data, u16 len)
+{
+	struct mgmt_cp_le_cancel_create_conn *cp = (void *) data;
+	struct hci_dev *hdev;
+	int err = 0;
+
+	if (len != sizeof(*cp))
+		return cmd_status(sk, index, MGMT_OP_LE_CANCEL_CREATE_CONN,
+							EINVAL);
+
+	hdev = hci_dev_get(index);
+
+	if (!hdev)
+		return cmd_status(sk, index, MGMT_OP_LE_CANCEL_CREATE_CONN,
+							ENODEV);
+
+	hci_dev_lock_bh(hdev);
+
+	if (!test_bit(HCI_UP, &hdev->flags)) {
+		err = cmd_status(sk, index,
+						MGMT_OP_LE_CANCEL_CREATE_CONN, ENETDOWN);
+		goto failed;
+	}
+
+	hci_le_cancel_create_connect(hdev, &cp->bdaddr);
+
+failed:
+	hci_dev_unlock_bh(hdev);
+	hci_dev_put(hdev);
+
+return err;
+}
+
 static int set_local_name(struct sock *sk, u16 index, unsigned char *data,
 								u16 len)
 {
@@ -2307,8 +2351,12 @@ static int start_discovery(struct sock *sk, u16 index)
 		le_cp.type = 0x01;		/* Active scanning */
 		/* The recommended value for scan interval and window is
 		 * 11.25 msec. It is calculated by: time = n * 0.625 msec */
-		le_cp.interval = cpu_to_le16(0x0012);
-		le_cp.window = cpu_to_le16(0x0012);
+
+
+
+        le_cp.interval = cpu_to_le16(0x1000);
+        le_cp.window = cpu_to_le16(0x0070);
+
 		le_cp.own_bdaddr_type = 0;	/* Public address */
 		le_cp.filter = 0;		/* Accept all adv packets */
 
@@ -2647,6 +2695,7 @@ int mgmt_control(struct sock *sk, struct msghdr *msg, size_t msglen)
 	case MGMT_OP_ENCRYPT_LINK:
 		err = encrypt_link(sk, index, buf + sizeof(*hdr), len);
 		break;
+
 	case MGMT_OP_LE_ADD_DEV_WHITE_LIST:
 		err = le_add_dev_white_list(sk, index, buf + sizeof(*hdr),
 									len);
@@ -2664,6 +2713,12 @@ int mgmt_control(struct sock *sk, struct msghdr *msg, size_t msglen)
 	case MGMT_OP_LE_CANCEL_CREATE_CONN_WHITE_LIST:
 		err = le_cancel_create_conn_white_list(sk, index);
 		break;
+
+
+	case MGMT_OP_LE_CANCEL_CREATE_CONN:
+		err = le_cancel_create_conn(sk, index, buf + sizeof(*hdr), len);
+		break;
+
 	default:
 		BT_DBG("Unknown op %u", opcode);
 		err = cmd_status(sk, index, opcode, 0x01);
@@ -2823,9 +2878,11 @@ int mgmt_new_key(u16 index, struct link_key *key, u8 bonded)
 int mgmt_connected(u16 index, bdaddr_t *bdaddr, u8 le)
 {
 	struct mgmt_ev_connected ev;
+
 	struct pending_cmd *cmd;
 	struct hci_dev *hdev;
 
+	BT_ERR("mgmt_connected");
 	BT_DBG("hci%u", index);
 
 	hdev = hci_dev_get(index);
@@ -2842,7 +2899,15 @@ int mgmt_connected(u16 index, bdaddr_t *bdaddr, u8 le)
 		mgmt_pending_remove(cmd);
 	}
 
+
+
+
+
+
+
+
 	return mgmt_event(MGMT_EV_CONNECTED, index, &ev, sizeof(ev), NULL);
+
 }
 
 int mgmt_le_conn_params(u16 index, bdaddr_t *bdaddr, u16 interval,

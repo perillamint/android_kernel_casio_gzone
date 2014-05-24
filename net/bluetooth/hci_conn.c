@@ -21,6 +21,10 @@
    COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 /* Bluetooth HCI connection handling. */
 
@@ -50,7 +54,9 @@ struct hci_conn *hci_le_connect(struct hci_dev *hdev, __u16 pkt_type,
 				bdaddr_t *dst, __u8 sec_level, __u8 auth_type,
 				struct bt_le_params *le_params)
 {
+
 	struct hci_conn *le, *le_wlist_conn;
+
 	struct hci_cp_le_create_conn cp;
 	struct adv_entry *entry;
 	struct link_key *key;
@@ -59,11 +65,12 @@ struct hci_conn *hci_le_connect(struct hci_dev *hdev, __u16 pkt_type,
 
 	le = hci_conn_hash_lookup_ba(hdev, LE_LINK, dst);
 	if (le) {
+
 		le_wlist_conn = hci_conn_hash_lookup_ba(hdev, LE_LINK,
 								BDADDR_ANY);
 		if (!le_wlist_conn) {
-			hci_conn_hold(le);
-			return le;
+		hci_conn_hold(le);
+		return le;
 		} else {
 			BT_DBG("remove wlist conn");
 			le->out = 1;
@@ -74,6 +81,7 @@ struct hci_conn *hci_le_connect(struct hci_dev *hdev, __u16 pkt_type,
 			hci_conn_del(le_wlist_conn);
 			return le;
 		}
+
 	}
 
 	key = hci_find_link_key_type(hdev, dst, KEY_TYPE_LTK);
@@ -120,13 +128,15 @@ struct hci_conn *hci_le_connect(struct hci_dev *hdev, __u16 pkt_type,
 		cp.conn_latency = cpu_to_le16(BT_LE_LATENCY_DEF);
 		le->conn_timeout = 5;
 	}
+
 	if (!bacmp(&le->dst, BDADDR_ANY)) {
 		cp.filter_policy = 0x01;
 		le->conn_timeout = 0;
 	} else {
-		bacpy(&cp.peer_addr, &le->dst);
-		cp.peer_addr_type = le->dst_type;
+	bacpy(&cp.peer_addr, &le->dst);
+	cp.peer_addr_type = le->dst_type;
 	}
+
 
 	hci_send_cmd(hdev, HCI_OP_LE_CREATE_CONN, sizeof(cp), &cp);
 
@@ -138,6 +148,7 @@ static void hci_le_connect_cancel(struct hci_conn *conn)
 {
 	hci_send_cmd(conn->hdev, HCI_OP_LE_CREATE_CONN_CANCEL, 0, NULL);
 }
+
 
 void hci_le_cancel_create_connect(struct hci_dev *hdev, bdaddr_t *dst)
 {
@@ -205,6 +216,7 @@ void hci_le_remove_dev_white_list(struct hci_dev *hdev, bdaddr_t *dst)
 	hci_send_cmd(hdev, HCI_OP_LE_REMOVE_DEV_WHITE_LIST, sizeof(cp), &cp);
 }
 EXPORT_SYMBOL(hci_le_remove_dev_white_list);
+
 
 void hci_acl_connect(struct hci_conn *conn)
 {

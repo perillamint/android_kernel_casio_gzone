@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 /*
  * msm_dsps - control DSPS clocks, gpios and vregs.
@@ -43,6 +47,12 @@
 
 #include "ramdump.h"
 #include "timer.h"
+
+
+#include <mach/restart.h>
+#include <mach/board_gg3.h>
+
+
 
 #define DRV_NAME	"msm_dsps"
 #define DRV_VERSION	"4.02"
@@ -734,7 +744,17 @@ static void dsps_restart_handler(void)
 	if (atomic_add_return(1, &drv->crash_in_progress) > 1) {
 		pr_err("%s: DSPS already resetting. Count %d\n", __func__,
 		       atomic_read(&drv->crash_in_progress));
+
+
+		m7_set_magic_for_subsystem("dsps");
+		msm_set_restart_mode(0x29A92003);
+
+
 	} else {
+
+		m7_set_magic_for_subsystem("dsps");
+		msm_set_restart_mode(0x29A92003);
+
 		subsystem_restart("dsps");
 	}
 }
@@ -756,6 +776,12 @@ static void dsps_smsm_state_cb(void *data, uint32_t old_state,
 	}
 	if (new_state & SMSM_RESET) {
 		dsps_log_sfr();
+
+
+		m7_set_magic_for_subsystem("dsps");
+		msm_set_restart_mode(0x29A92003);
+
+
 		dsps_restart_handler();
 	}
 }

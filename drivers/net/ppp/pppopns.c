@@ -13,6 +13,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 /* This driver handles PPTP data packets between a RAW socket and a PPP channel.
  * The socket is created in the kernel space and connected to the same address
@@ -290,6 +294,9 @@ static int pppopns_connect(struct socket *sock, struct sockaddr *useraddr,
 	po->chan.hdrlen = 14;
 	po->chan.private = sk_raw;
 	po->chan.ops = &pppopns_channel_ops;
+
+#define	PPP_MTU		1500	
+
 	po->chan.mtu = PPP_MTU - 80;
 	po->proto.pns.local = addr->local;
 	po->proto.pns.remote = addr->remote;

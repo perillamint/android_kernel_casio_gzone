@@ -8,6 +8,10 @@
  * Some chunks also taken from the old x86-specific nmi watchdog code, thanks
  * to those contributors as well.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #define pr_fmt(fmt) "NMI watchdog: " fmt
 
@@ -302,7 +306,13 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
 		print_modules();
 		print_irqtrace_events(current);
 		if (regs)
-			show_regs(regs);
+			
+
+			show_regs_fatal(regs);
+
+
+
+			
 		else
 			dump_stack();
 

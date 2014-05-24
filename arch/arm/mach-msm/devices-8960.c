@@ -10,6 +10,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/kernel.h>
 #include <linux/list.h>
@@ -24,6 +28,12 @@
 #include <mach/irqs-8960.h>
 #include <mach/dma.h>
 #include <linux/dma-mapping.h>
+
+
+#include <asm/setup.h>
+#include <mach/board_gg3.h>
+
+
 #include <mach/board.h>
 #include <mach/msm_iomap.h>
 #include <mach/msm_hsusb.h>
@@ -730,7 +740,13 @@ struct msm_vidc_platform_data vidc_platform_data = {
 	.disable_dmx = 0,
 	.disable_fullhd = 0,
 	.cont_mode_dpb_count = 18,
-	.fw_addr = 0x9fe00000,
+
+
+
+
+	.fw_addr = 0xafe00000,
+
+
 };
 
 struct platform_device msm_device_vidc = {
@@ -1284,11 +1300,20 @@ struct platform_device msm_device_bam_dmux = {
 	.id		= -1,
 };
 
+
+/*
 static struct msm_watchdog_pdata msm_watchdog_pdata = {
 	.pet_time = 10000,
 	.bark_time = 11000,
 	.has_secure = true,
 };
+*/
+static struct msm_watchdog_pdata msm_watchdog_pdata = {
+	.pet_time = 10000,
+	.bark_time = 30000,
+	.has_secure = true,
+};
+
 
 struct platform_device msm8960_device_watchdog = {
 	.name = "msm_watchdog",
@@ -1345,6 +1370,36 @@ int __init msm_add_sdcc(unsigned int controller, struct mmc_platform_data *plat)
 	return platform_device_register(pdev);
 }
 
+
+static struct resource resources_qup_i2c_gsbi1[] = {
+	{
+		.name	= "gsbi_qup_i2c_addr",
+		.start	= MSM_GSBI1_PHYS,
+		.end	= MSM_GSBI1_PHYS + 4 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "qup_phys_addr",
+		.start	= MSM_GSBI1_QUP_PHYS,
+		.end	= MSM_GSBI1_QUP_PHYS + MSM_QUP_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "qup_err_intr",
+		.start	= MSM8960_GSBI1_QUP_IRQ,
+		.end	= MSM8960_GSBI1_QUP_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device msm8960_device_qup_i2c_gsbi1 = { 
+	.name		= "qup_i2c",
+	.id		= 1,
+	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi1),
+	.resource	= resources_qup_i2c_gsbi1,
+};
+
+
 static struct resource resources_qup_i2c_gsbi4[] = {
 	{
 		.name	= "gsbi_qup_i2c_addr",
@@ -1392,6 +1447,20 @@ static struct resource resources_qup_i2c_gsbi3[] = {
 		.end	= GSBI3_QUP_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+
+	{
+		.name	= "i2c_clk",
+		.start	= 96,
+		.end	= 96,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "i2c_sda",
+		.start	= 95,
+		.end	= 95,
+		.flags	= IORESOURCE_IO,
+	},
+
 };
 
 struct platform_device msm8960_device_qup_i2c_gsbi3 = {
@@ -1400,6 +1469,37 @@ struct platform_device msm8960_device_qup_i2c_gsbi3 = {
 	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi3),
 	.resource	= resources_qup_i2c_gsbi3,
 };
+
+
+
+static struct resource resources_qup_i2c_gsbi8[] = {
+	{
+		.name	= "gsbi_qup_i2c_addr",
+		.start	= MSM_GSBI8_PHYS,
+		.end	= MSM_GSBI8_PHYS + 4 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "qup_phys_addr",
+		.start	= MSM_GSBI8_QUP_PHYS,
+		.end	= MSM_GSBI8_QUP_PHYS + MSM_QUP_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "qup_err_intr",
+		.start	= GSBI8_QUP_IRQ,
+		.end	= GSBI8_QUP_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device msm8960_device_qup_i2c_gsbi8 = {
+	.name		= "qup_i2c",
+	.id		= 8,
+	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi8),
+	.resource	= resources_qup_i2c_gsbi8,
+};
+
 
 static struct resource resources_qup_i2c_gsbi9[] = {
 	{
@@ -1827,63 +1927,127 @@ struct platform_device msm8960_device_ssbi_pmic = {
 	.num_resources  = ARRAY_SIZE(resources_ssbi_pmic),
 };
 
-static struct resource resources_qup_spi_gsbi1[] = {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static struct resource ram_console_resource[] = {
 	{
-		.name   = "spi_base",
-		.start  = MSM_GSBI1_QUP_PHYS,
-		.end    = MSM_GSBI1_QUP_PHYS + SZ_4K - 1,
-		.flags  = IORESOURCE_MEM,
-	},
-	{
-		.name   = "gsbi_base",
-		.start  = MSM_GSBI1_PHYS,
-		.end    = MSM_GSBI1_PHYS + 4 - 1,
-		.flags  = IORESOURCE_MEM,
-	},
-	{
-		.name   = "spi_irq_in",
-		.start  = MSM8960_GSBI1_QUP_IRQ,
-		.end    = MSM8960_GSBI1_QUP_IRQ,
-		.flags  = IORESOURCE_IRQ,
-	},
-	{
-		.name   = "spi_clk",
-		.start  = 9,
-		.end    = 9,
-		.flags  = IORESOURCE_IO,
-	},
-	{
-		.name   = "spi_miso",
-		.start  = 7,
-		.end    = 7,
-		.flags  = IORESOURCE_IO,
-	},
-	{
-		.name   = "spi_mosi",
-		.start  = 6,
-		.end    = 6,
-		.flags  = IORESOURCE_IO,
-	},
-	{
-		.name   = "spi_cs",
-		.start  = 8,
-		.end    = 8,
-		.flags  = IORESOURCE_IO,
-	},
-	{
-		.name   = "spi_cs1",
-		.start  = 14,
-		.end    = 14,
-		.flags  = IORESOURCE_IO,
-	},
+		.name = "ram_console",
+		.flags = IORESOURCE_MEM,
+	}
+};
+static struct platform_device ram_console_device = {
+	.name = "ram_console",
+	.id = -1,
+	.num_resources = ARRAY_SIZE(ram_console_resource),
+	.resource = ram_console_resource,
 };
 
-struct platform_device msm8960_device_qup_spi_gsbi1 = {
-	.name	= "spi_qsd",
-	.id	= 0,
-	.num_resources	= ARRAY_SIZE(resources_qup_spi_gsbi1),
-	.resource	= resources_qup_spi_gsbi1,
+void __init add_ramconsole_devices(void)
+{
+	struct resource* res = ram_console_resource;
+	struct membank* bank = &meminfo.bank[0];
+
+	res->start = PHYS_OFFSET + bank->size;
+	res->end = res->start + ANROID_RAM_CONSOLE_SIZE -1;
+	printk("ram console start addr : 0x%x\n", res->start);
+	printk("ram console end addr   : 0x%x\n", res->end);
+
+	platform_device_register(&ram_console_device);
+}
+
+
+
+
+static struct resource fatal_info_resource[] = {
+	{
+		.name = "fatal_info",
+		.flags = IORESOURCE_MEM,
+	}
 };
+
+static struct platform_device fatal_info_handler_device = {
+	.name = "fatal-info-handler",
+	.num_resources = ARRAY_SIZE(fatal_info_resource),
+	.resource = fatal_info_resource,
+	.dev = {
+		.platform_data = NULL,
+	}
+};
+
+void __init add_fatal_info_handler_devices(void)
+{
+	struct resource* res = fatal_info_resource;
+	struct membank* bank = &meminfo.bank[0];
+
+	res->start = bank->start + bank->size + ANROID_RAM_CONSOLE_SIZE;
+	res->end = res->start + CRASH_LOG_SIZE - 1;
+
+	printk(KERN_INFO "fatal info handler start addr : %x\n", res->start);
+	printk(KERN_INFO "fatal info handler end addr  : %x\n", res->end);
+
+	platform_device_register(&fatal_info_handler_device);
+}
+
 
 struct platform_device msm_pcm = {
 	.name	= "msm-pcm-dsp",

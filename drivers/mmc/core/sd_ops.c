@@ -8,6 +8,10 @@
  * the Free Software Foundation; either version 2 of the License, or (at
  * your option) any later version.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/slab.h>
 #include <linux/types.h>
@@ -161,7 +165,10 @@ int mmc_send_app_op_cond(struct mmc_host *host, u32 ocr, u32 *rocr)
 		cmd.arg = ocr;
 	cmd.flags = MMC_RSP_SPI_R1 | MMC_RSP_R3 | MMC_CMD_BCR;
 
-	for (i = 100; i; i--) {
+
+	for (i = 200; i; i--) {
+
+
 		err = mmc_wait_for_app_cmd(host, NULL, &cmd, MMC_CMD_RETRIES);
 		if (err)
 			break;
@@ -186,6 +193,12 @@ int mmc_send_app_op_cond(struct mmc_host *host, u32 ocr, u32 *rocr)
 
 	if (rocr && !mmc_host_is_spi(host))
 		*rocr = cmd.resp[0];
+
+
+	if (i == 0 && err == -ETIMEDOUT) {
+		pr_info("[T][ARM]Event:0x4E Info:0xE96E0069%08X\n", cmd.resp[0]);
+	}
+
 
 	return err;
 }

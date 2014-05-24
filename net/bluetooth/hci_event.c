@@ -21,6 +21,10 @@
    COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 /* Bluetooth HCI event handling. */
 
@@ -426,6 +430,7 @@ static void hci_cc_host_buffer_size(struct hci_dev *hdev, struct sk_buff *skb)
 	hci_req_complete(hdev, HCI_OP_HOST_BUFFER_SIZE, status);
 }
 
+
 static void hci_cc_le_clear_white_list(struct hci_dev *hdev,
 							struct sk_buff *skb)
 {
@@ -435,6 +440,7 @@ static void hci_cc_le_clear_white_list(struct hci_dev *hdev,
 
 	hci_req_complete(hdev, HCI_OP_LE_CLEAR_WHITE_LIST, status);
 }
+
 
 static void hci_cc_read_ssp_mode(struct hci_dev *hdev, struct sk_buff *skb)
 {
@@ -923,6 +929,7 @@ static void hci_cc_le_read_buffer_size(struct hci_dev *hdev,
 	hci_req_complete(hdev, HCI_OP_LE_READ_BUFFER_SIZE, rp->status);
 }
 
+
 static void hci_cc_le_read_white_list_size(struct hci_dev *hdev,
 				       struct sk_buff *skb)
 {
@@ -939,6 +946,7 @@ static void hci_cc_le_read_white_list_size(struct hci_dev *hdev,
 
 	hci_req_complete(hdev, HCI_OP_LE_READ_WHITE_LIST_SIZE, rp->status);
 }
+
 
 static void hci_cc_user_confirm_reply(struct hci_dev *hdev, struct sk_buff *skb)
 {
@@ -1567,7 +1575,31 @@ static void hci_cs_disconn_physical_link(struct hci_dev *hdev, __u8 status)
 
 static void hci_cs_le_start_enc(struct hci_dev *hdev, u8 status)
 {
+
+	struct hci_cp_le_start_enc *cp;
+	struct hci_conn *conn;
+
 	BT_DBG("%s status 0x%x", hdev->name, status);
+
+	if (!status) {
+		return;
+	}
+
+	BT_DBG("%s Le start enc failed 0x%x", hdev->name, status);
+	cp = hci_sent_cmd_data(hdev, HCI_OP_LE_START_ENC);
+	if (!cp) {
+		BT_DBG("CP is null");
+		return;
+	}
+	hci_dev_lock(hdev);
+
+	conn = hci_conn_hash_lookup_handle(hdev, __le16_to_cpu(cp->handle));
+	if (conn) {
+		BT_DBG("conn exists");
+		hci_conn_put(conn);
+	}
+	hci_dev_unlock(hdev);
+
 }
 
 static inline void hci_inquiry_complete_evt(struct hci_dev *hdev, struct sk_buff *skb)
@@ -2280,6 +2312,7 @@ static inline void hci_cmd_complete_evt(struct hci_dev *hdev, struct sk_buff *sk
 		hci_cc_le_read_buffer_size(hdev, skb);
 		break;
 
+
 	case HCI_OP_LE_READ_WHITE_LIST_SIZE:
 		hci_cc_le_read_white_list_size(hdev, skb);
 		break;
@@ -2287,6 +2320,7 @@ static inline void hci_cmd_complete_evt(struct hci_dev *hdev, struct sk_buff *sk
 	case HCI_OP_LE_CLEAR_WHITE_LIST:
 		hci_cc_le_clear_white_list(hdev, skb);
 		break;
+
 
 	case HCI_OP_READ_RSSI:
 		hci_cc_read_rssi(hdev, skb);
@@ -3207,11 +3241,14 @@ static inline void hci_le_conn_complete_evt(struct hci_dev *hdev, struct sk_buff
 {
 	struct hci_ev_le_conn_complete *ev = (void *) skb->data;
 	struct hci_conn *conn;
+
 	u8 white_list;
+
 
 	BT_DBG("%s status %d", hdev->name, ev->status);
 
 	hci_dev_lock(hdev);
+
 
 	/* Ignore event for LE cancel create conn whitelist */
 	if (ev->status && !bacmp(&ev->bdaddr, BDADDR_ANY))
@@ -3223,6 +3260,7 @@ static inline void hci_le_conn_complete_evt(struct hci_dev *hdev, struct sk_buff
 		white_list = 0;
 
 	BT_DBG("w_list %d", white_list);
+
 
 	conn = hci_conn_hash_lookup_ba(hdev, LE_LINK, &ev->bdaddr);
 	if (!conn) {
@@ -3255,8 +3293,10 @@ static inline void hci_le_conn_complete_evt(struct hci_dev *hdev, struct sk_buff
 	hci_conn_hold_device(conn);
 	hci_conn_add_sysfs(conn);
 
+
 	if (!white_list)
-		hci_proto_connect_cfm(conn, ev->status);
+	hci_proto_connect_cfm(conn, ev->status);
+
 
 unlock:
 	hci_dev_unlock(hdev);

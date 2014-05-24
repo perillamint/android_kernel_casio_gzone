@@ -10,6 +10,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/export.h>
 #include <linux/workqueue.h>
@@ -312,6 +316,29 @@ static int msm_isp_notify_vfe(struct v4l2_subdev *sd,
 		isp_event->isp_data.isp_msg.msg_id = isp_msg->msg_id;
 		isp_event->isp_data.isp_msg.frame_id = isp_msg->sof_count;
 		getnstimeofday(&(isp_event->isp_data.isp_msg.timestamp));
+
+
+		if(isp_event->isp_data.isp_msg.msg_id == MSG_ID_STOP_ACK){
+			
+			struct v4l2_event ev;
+
+			pr_err("%s: event_dequeue\n",__func__);
+			if(i2c_error_flag == true){
+				do {
+					rc = v4l2_event_dequeue(
+						&pmctl->config_device->config_stat_event_queue.eventHandle,
+						&ev, O_NONBLOCK);
+					if (rc < 0) {
+						pr_err("no pending events?\n");
+						break;
+					}
+				}while(rc < 0);
+				rc=0;
+			}
+			
+			i2c_error_flag = false;
+		}
+
 		break;
 	}
 	case NOTIFY_VFE_MSG_OUT: {

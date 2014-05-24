@@ -14,6 +14,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #ifndef __ASM_ARCH_MSM_HSUSB_H
 #define __ASM_ARCH_MSM_HSUSB_H
@@ -87,12 +91,18 @@ enum msm_usb_phy_type {
 	SNPS_28NM_INTEGRATED_PHY,
 };
 
-#define IDEV_CHG_MAX	1500
+
+#define IDEV_CHG_MAX	900
 #define IDEV_CHG_MIN	500
 #define IUNIT		100
 
-#define IDEV_ACA_CHG_MAX	1500
+#define IDEV_ACA_CHG_MAX	850 
 #define IDEV_ACA_CHG_LIMIT	500
+
+
+#define IDEV_WIFI_CHG_MAX   625
+
+#define IDEV_CRADLE_CHG_MAX 850
 
 /**
  * Different states involved in USB charger detection.
@@ -322,6 +332,12 @@ struct msm_otg {
 	unsigned cur_power;
 	struct delayed_work chg_work;
 	struct delayed_work pmic_id_status_work;
+
+	struct delayed_work adc_test_work;
+
+
+	struct delayed_work chg_check_work;
+
 	enum usb_chg_state chg_state;
 	enum usb_chg_type chg_type;
 	u8 dcd_retries;
@@ -329,6 +345,9 @@ struct msm_otg {
 	struct notifier_block usbdev_nb;
 	unsigned mA_port;
 	struct timer_list id_timer;
+	
+	struct timer_list adc_test_timer;
+
 	unsigned long caps;
 	struct msm_xo_voter *xo_handle;
 	uint32_t bus_perf_client;
