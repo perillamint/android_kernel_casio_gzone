@@ -12,11 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
-
 #ifndef _MSM_MDP_H_
 #define _MSM_MDP_H_
 
@@ -82,36 +77,6 @@
 #define MDP_IMGTYPE2_START 0x10000
 #define MSMFB_DRIVER_VERSION	0xF9E8D701
 
-
-#define MSMFB_CUSTOM_1    _IO(MSMFB_IOCTL_MAGIC, 160)
-#define MSMFB_CUSTOM_2    _IO(MSMFB_IOCTL_MAGIC, 161)
-#define MSMFB_CUSTOM_3    _IO(MSMFB_IOCTL_MAGIC, 162)
-#define MSMFB_CUSTOM_4    _IO(MSMFB_IOCTL_MAGIC, 163)
-#define MSMFB_CUSTOM_5    _IO(MSMFB_IOCTL_MAGIC, 164)
-
-
-#define MSMFB_CUSTOM_6    _IOW(MSMFB_IOCTL_MAGIC, 165, struct msmfb_regset *)
-
-
-#define MSMFB_CUSTOM_7    _IOR(MSMFB_IOCTL_MAGIC, 166, struct msmfb_vsync_ave *)
-
-
-#define MSMFB_CUSTOM_8    _IOW(MSMFB_IOCTL_MAGIC, 167, struct msmfb_vsync_parame *)
-
-
-#define MSMFB_CUSTOM_9    _IOW(MSMFB_IOCTL_MAGIC, 168, struct msmfb_request_parame *)
-
-
-
-#define MSMFB_CUSTOM_10   _IO(MSMFB_IOCTL_MAGIC, 169)
-#define MSMFB_CUSTOM_11   _IO(MSMFB_IOCTL_MAGIC, 170)
-
-
-
-#define MSMFB_CUSTOM_156  _IO(MSMFB_IOCTL_MAGIC, 191)
-#define MSMFB_CUSTOM_157  _IO(MSMFB_IOCTL_MAGIC, 192)
-
-
 enum {
 	NOTIFY_UPDATE_START,
 	NOTIFY_UPDATE_STOP,
@@ -153,20 +118,6 @@ enum {
 	PMEM_IMG,
 	FB_IMG,
 };
-
-
-enum {
-	MSM_FB_REQUEST_OVERLAY_ALPHA,
-	MSM_FB_REQUEST_MAX
-};
-
-
-
-typedef enum {
-	MSM_FB_REQUEST_DISABLE,
-	MSM_FB_REQUEST_ENABLE
-} MSM_FB_REQUEST_FLAG;
-
 
 enum {
 	HSIC_HUE = 0,
@@ -574,35 +525,5 @@ int msm_fb_writeback_dequeue_buffer(struct fb_info *info,
 int msm_fb_writeback_stop(struct fb_info *info);
 int msm_fb_writeback_terminate(struct fb_info *info);
 #endif
-
-
-
-struct msmfb_regset {
-	uint32_t  reg_addr;  
-	uint32_t  set_data;  
-};
-
-
-
-struct msmfb_vsync_ave {
-	uint32_t integer;    
-	uint32_t decimal;    
-};
-
-
-
-struct msmfb_vsync_parame {
-    uint32_t  set_data;  
-};
-
-
-
-struct msmfb_request_parame {
-    uint32_t  request;    
-    void*     data;   
-};
-
-
-
 
 #endif /*_MSM_MDP_H_*/

@@ -1,10 +1,6 @@
 #
 # Makefile for the touchscreen drivers.
 #
-#/***********************************************************************/
-#/* Modified by                                                         */
-#/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-#/***********************************************************************/
 
 # Each configuration option enables a list of files.
 
@@ -83,5 +79,3 @@ obj-$(CONFIG_TOUCHSCREEN_TPS6507X)	+= tps6507x-ts.o
 obj-$(CONFIG_TOUCHSCREEN_MSM_LEGACY)		+= msm_touch.o
 obj-$(CONFIG_TOUCHSCREEN_CY8C_TS)	+= cy8c_ts.o
 obj-$(CONFIG_TOUCHSCREEN_CYTTSP_I2C_QC)       += cyttsp-i2c-qc.o
-
-obj-$(CONFIG_TOUCHSCREEN_MXT224E)	+= mxt224E.o

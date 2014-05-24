@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 #define pr_fmt(fmt)	"%s: " fmt, __func__
 
 #include <linux/module.h>
@@ -688,11 +684,12 @@ static int __devinit pm8xxx_ccadc_probe(struct platform_device *pdev)
 		pr_err("failed to request %d irq rc= %d\n", chip->eoc_irq, rc);
 		goto free_chip;
 	}
+
+
 	disable_irq_nosync(chip->eoc_irq);
 
 	platform_set_drvdata(pdev, chip);
 	the_chip = chip;
-
 	INIT_DELAYED_WORK(&chip->calib_ccadc_work, calibrate_ccadc_work);
 	schedule_delayed_work(&chip->calib_ccadc_work, 0);
 

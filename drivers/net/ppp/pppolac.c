@@ -13,10 +13,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 /* This driver handles L2TP data packets between a UDP socket and a PPP channel.
  * The socket must keep connected, and only one session per socket is permitted.
@@ -314,9 +310,6 @@ static int pppolac_connect(struct socket *sock, struct sockaddr *useraddr,
 	po->chan.hdrlen = 12;
 	po->chan.private = sk_udp;
 	po->chan.ops = &pppolac_channel_ops;
-
-#define	PPP_MTU		1500	
-
 	po->chan.mtu = PPP_MTU - 80;
 	po->proto.lac.local = unaligned(&addr->local)->u32;
 	po->proto.lac.remote = unaligned(&addr->remote)->u32;

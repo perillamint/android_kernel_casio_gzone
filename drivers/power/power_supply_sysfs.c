@@ -1,8 +1,3 @@
-/**********************************************************************
-* File Name: drivers/power/power_supply_sysfs.c
-* 
-* (C) NEC CASIO Mobile Communications, Ltd. 2013
-**********************************************************************/
 /*
  *  Sysfs interface for the universal power supply monitor class
  *
@@ -179,15 +174,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(time_to_full_avg),
 	POWER_SUPPLY_ATTR(type),
 	POWER_SUPPLY_ATTR(scope),
-	
-	POWER_SUPPLY_ATTR(batt_id),
-	
-	POWER_SUPPLY_ATTR(vin_chk),
-	
 	/* Properties of type `const char *' */
-	POWER_SUPPLY_ATTR(cradle_status),
-	POWER_SUPPLY_ATTR(wireless_status),
-	POWER_SUPPLY_ATTR(chg_done_check),
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
 	POWER_SUPPLY_ATTR(serial_number),

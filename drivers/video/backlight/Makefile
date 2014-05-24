@@ -1,8 +1,3 @@
-#/**********************************************************************
-#* File Name: drivers/video/backlight/Makefile
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 # Backlight & LCD drivers
 
 obj-$(CONFIG_LCD_CLASS_DEVICE)     += lcd.o
@@ -47,5 +42,3 @@ obj-$(CONFIG_BACKLIGHT_88PM860X) += 88pm860x_bl.o
 obj-$(CONFIG_BACKLIGHT_PCF50633)	+= pcf50633-backlight.o
 obj-$(CONFIG_BACKLIGHT_AAT2870) += aat2870_bl.o
 obj-$(CONFIG_BACKLIGHT_OT200) += ot200_bl.o
-
-obj-$(CONFIG_BACKLIGHT_LM3530) += lm3530.o

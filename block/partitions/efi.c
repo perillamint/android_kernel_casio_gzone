@@ -93,10 +93,6 @@
  * - Code works, detects all the partitions.
  *
  ************************************************************/
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 #include <linux/crc32.h>
 #include <linux/ctype.h>
 #include <linux/math64.h>
@@ -599,24 +595,6 @@ static int find_valid_gpt(struct parsed_partitions *state, gpt_header **gpt,
         return 0;
 }
 
-
-#include <linux/proc_fs.h>
-#define MAX_PARTITION_INFO 1024
-static char emmc_partition_info[MAX_PARTITION_INFO] = {'\0'};
-static struct proc_dir_entry *proc_emmc;
-
-static int proc_emmc_read(char *page, char **start, off_t off, int count, int *eof, void *data)
-{
-	int len;
-
-	sprintf(page, "dev: size erasesize name\n");
-	strcat(page, emmc_partition_info);
-	len = strlen(page);
-
-	return len;
-}
-
-
 /**
  * efi_partition(struct parsed_partitions *state)
  * @state
@@ -651,18 +629,6 @@ int efi_partition(struct parsed_partitions *state)
 	}
 
 	pr_debug("GUID Partition Table is valid!  Yea!\n");
-
-
-	proc_emmc = create_proc_entry("emmc", 0444, NULL);
-	if (proc_emmc == NULL) {
-		pr_debug("/proc/emmc cannot create.\n");
-	}
-	else {
-		proc_emmc->read_proc = proc_emmc_read;
-		proc_emmc->write_proc = NULL;
-		pr_debug("/proc/emmc created.\n");
-	}
-
 
 	for (i = 0; i < le32_to_cpu(gpt->num_partition_entries) && i < state->limit-1; i++) {
 		struct partition_meta_info *info;
@@ -701,20 +667,6 @@ int efi_partition(struct parsed_partitions *state)
 			label_count++;
 		}
 		state->parts[i + 1].has_info = true;
-
-		{
-			char tmp[64];
-			int tmp_count;
-			char dev_name[16];
-			for (tmp_count = 1; state->pp_buf[tmp_count] != ':'; tmp_count++)
-				dev_name[tmp_count - 1] = state->pp_buf[tmp_count];
-			dev_name[tmp_count - 1] = '\0';
-			sprintf(tmp, "%s%s%d: %llx %x \"%s\"\n", 
-				dev_name, state->name, i + 1, 
-				size * 512, state->bdev->bd_block_size, info->volname);
-			strcat(emmc_partition_info, tmp);
-		}
-
 	}
 	kfree(ptes);
 	kfree(gpt);

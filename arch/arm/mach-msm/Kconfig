@@ -1,15 +1,6 @@
-#/**********************************************************************
-#* File Name: arch/arm/mach-msm/Kconfig
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 if ARCH_MSM
 
 menu "MSM SoC Type"
-
-config DVE033_NORMAL_RELEASE
-	default y
-	bool "DVE033_NORMAL_RELEASE"
 
 config ARCH_MSM7X01A
 	bool "MSM7x00A / MSM7x01A"
@@ -829,12 +820,6 @@ config MACH_MSM9615_MTP
 	help
 	  Support for the Qualcomm MSM9615 MTP device.
 
-
-config MACH_MSM8960_DVE068
-	depends on ARCH_MSM8960
-	bool "MSM8960 DVE068"
-	help
-	  Support for the Qualcomm MSM8960 DVE068 device.
 config MSM_USE_TSIF1
 	depends on ARCH_MSM8X60
 	bool "MSM8x60 use TSIF1"
@@ -1434,30 +1419,6 @@ config MSM_DSPS
 	  themself.
 	  The number of clocks and their name may vary between targets.
 	  It also triggers the PIL to load the DSPS firmware.
-
-
-config DVE068_SENSORS
-	   bool "DVE068's Sensors(A, M, G, P, A sensor)"
-	   depends on (MSM_DSPS && ARCH_MSM8960)
-	   default n
-	   help
-	     Set sensor's power and reset pin
-
-
-
-config DVE068_DIAG
-	   bool "DVE068 Apps diag interface"
-	   depends on (DIAG_CHAR && ARCH_MSM8960)
-	   default n
-	   help
-	     Apps diag interface for DVE068 model.
-
-
-
-config DVE021_USB
-	default y
-	bool "DVE021_USB"
-
 
 config MSM_SDIO_CTL
 	bool "SDIO CTL Driver"
@@ -2111,10 +2072,8 @@ config IOMMU_API
 config MSM_GPIOMUX
 	bool
 
-
 config MSM_SECURE_IO
 	bool
-	default y    
 
 config MSM_NATIVE_RESTART
 	bool
@@ -2500,14 +2459,6 @@ config MSM_CACHE_DUMP_ON_PANIC
 	  look at them in a RAM dump will give useless data. Select this if you
 	  want to dump the L1 and L2 caches on panic before any flush occurs.
 	  If unsure, say N
-
-config DVE068_AUDIO
-	bool "DVE068 Audio Systems"
-	default n	  
-
-config FATAL_INFO_HANDLE
-    bool "Fatal info Handler"
-    default n
 
 config MSM_HSIC_SYSMON
 	tristate "MSM HSIC system monitor driver"

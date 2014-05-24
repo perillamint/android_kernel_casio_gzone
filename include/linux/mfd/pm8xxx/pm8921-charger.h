@@ -9,10 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #ifndef __PM8XXX_CHARGER_H
 #define __PM8XXX_CHARGER_H
@@ -151,11 +147,7 @@ struct pm8921_charger_platform_data {
 	unsigned int			(*get_batt_capacity_percent) (void);
 	int64_t				batt_id_min;
 	int64_t				batt_id_max;
-	
-	int64_t				batt_id_min_ext;
-	int64_t				batt_id_max_ext;
-		
-	
+	bool				keep_btm_on_suspend;
 	bool				dc_unplug_check;
 	bool				has_dc_supply;
 	int				trkl_voltage;
@@ -304,15 +296,6 @@ int pm8921_usb_ovp_disable(int disable);
  * batfet this will return 0.
  */
 int pm8921_is_batfet_closed(void);
-
-int pm_power_get_charger_mode(void);
-int pm8921_get_prop_battery_uvolts(void);
-
-int pm8921_is_batt_status(void);
-
-
-int pm8921_is_battery_full(void);
-
 #else
 static inline void pm8921_charger_vbus_draw(unsigned int mA)
 {
@@ -389,24 +372,6 @@ static inline int pm8921_is_batfet_closed(void)
 {
 	return 1;
 }
-static inline int pm_power_get_charger_mode(void)
-{
-	return -ENXIO;
-}
-static inline int pm8921_get_prop_battery_uvolts(void)
-{
-	return -ENXIO;
-}
-static inline int pm8921_is_batt_status(void)
-{
-	return -ENXIO;
-}
-
-static inline int pm8921_is_battery_full(void)
-{
-	return 0;
-}
-
 #endif
 
 #endif

@@ -1,8 +1,3 @@
-#/**********************************************************************
-#* File Name: drivers/usb/gadget/Kconfig
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 #
 # USB Gadget support on a system involves
 #    (a) a peripheral controller, and
@@ -920,19 +915,6 @@ config USB_G_ANDROID
 	  Each function can be configured and enabled/disabled
 	  dynamically from userspace through a sysfs interface.
 
-
-config DVE068_USB_MASS_STORAGE
-	boolean "DVE068 USB Mass Storage"
-	depends on USB_G_ANDROID
-	help
-	  DVE068 Support for multiple usb mass storage.
-
-
-config DVE068_ZERO_CD
-	boolean "DVE068 Zero CD"
-	depends on USB_G_ANDROID
-	help
-	  DVE068 Support for zero cd.
 config USB_CDC_COMPOSITE
 	tristate "CDC Composite Device (Ethernet and ACM)"
 	depends on NET

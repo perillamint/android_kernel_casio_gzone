@@ -1,8 +1,3 @@
-#/**********************************************************************
-#* File Name: drivers/video/backlight/Kconfig
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 #
 # Backlight & LCD drivers configuration
 #
@@ -366,11 +361,6 @@ config BACKLIGHT_PANDORA
 	  If you have a Pandora console, say Y to enable the
 	  backlight driver.
 
-
-config BACKLIGHT_LM3530
-	bool "select LM3530 device as backlight control"
-	help
-	  LM3530 backlight control
 endif # BACKLIGHT_CLASS_DEVICE
 
 endif # BACKLIGHT_LCD_SUPPORT

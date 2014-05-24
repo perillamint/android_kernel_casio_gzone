@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 /* #define DEBUG */
 #define DEV_DBG_PREFIX "HDMI: "
@@ -3158,10 +3154,10 @@ static void hdmi_msm_audio_acr_setup(boolean enabled, int video_format,
 {
 	/* Read first before writing */
 	/* HDMI_ACR_PKT_CTRL[0x0024] */
-	uint32 acr_DVE046_ctrl_reg = HDMI_INP(0x0024);
+	uint32 acr_pck_ctrl_reg = HDMI_INP(0x0024);
 
 	/* Clear N/CTS selection bits */
-	acr_DVE046_ctrl_reg &= ~(3 << 4);
+	acr_pck_ctrl_reg &= ~(3 << 4);
 
 	if (enabled) {
 		const struct hdmi_disp_mode_timing_type *timing =
@@ -3170,7 +3166,7 @@ static void hdmi_msm_audio_acr_setup(boolean enabled, int video_format,
 			&hdmi_msm_audio_acr_lut[0];
 		const int lut_size = sizeof(hdmi_msm_audio_acr_lut)
 			/sizeof(*hdmi_msm_audio_acr_lut);
-		uint32 i, n, cts, layout, multiplier, aud_DVE046_ctrl_2_reg;
+		uint32 i, n, cts, layout, multiplier, aud_pck_ctrl_2_reg;
 
 		if (timing == NULL) {
 			DEV_WARN("%s: video format %d not supported\n",
@@ -3208,15 +3204,15 @@ static void hdmi_msm_audio_acr_setup(boolean enabled, int video_format,
 			layout);
 
 		/* AUDIO_PRIORITY | SOURCE */
-		acr_DVE046_ctrl_reg |= 0x80000100;
+		acr_pck_ctrl_reg |= 0x80000100;
 		/* N_MULTIPLE(multiplier) */
-		acr_DVE046_ctrl_reg |= (multiplier & 7) << 16;
+		acr_pck_ctrl_reg |= (multiplier & 7) << 16;
 
 		if ((MSM_HDMI_SAMPLE_RATE_48KHZ == audio_sample_rate) ||
 		    (MSM_HDMI_SAMPLE_RATE_96KHZ == audio_sample_rate) ||
 		    (MSM_HDMI_SAMPLE_RATE_192KHZ == audio_sample_rate)) {
 			/* SELECT(3) */
-			acr_DVE046_ctrl_reg |= 3 << 4;
+			acr_pck_ctrl_reg |= 3 << 4;
 			/* CTS_48 */
 			cts <<= 12;
 
@@ -3232,7 +3228,7 @@ static void hdmi_msm_audio_acr_setup(boolean enabled, int video_format,
 			   || (MSM_HDMI_SAMPLE_RATE_176_4KHZ ==
 			       audio_sample_rate)) {
 			/* SELECT(2) */
-			acr_DVE046_ctrl_reg |= 2 << 4;
+			acr_pck_ctrl_reg |= 2 << 4;
 			/* CTS_44 */
 			cts <<= 12;
 
@@ -3244,7 +3240,7 @@ static void hdmi_msm_audio_acr_setup(boolean enabled, int video_format,
 			HDMI_OUTP(0x00D0, n);
 		} else {	/* default to 32k */
 			/* SELECT(1) */
-			acr_DVE046_ctrl_reg |= 1 << 4;
+			acr_pck_ctrl_reg |= 1 << 4;
 			/* CTS_32 */
 			cts <<= 12;
 
@@ -3257,19 +3253,19 @@ static void hdmi_msm_audio_acr_setup(boolean enabled, int video_format,
 		}
 		/* Payload layout depends on number of audio channels */
 		/* LAYOUT_SEL(layout) */
-		aud_DVE046_ctrl_2_reg = 1 | (layout << 1);
+		aud_pck_ctrl_2_reg = 1 | (layout << 1);
 		/* override | layout */
 		/* HDMI_AUDIO_PKT_CTRL2[0x00044] */
-		HDMI_OUTP(0x00044, aud_DVE046_ctrl_2_reg);
+		HDMI_OUTP(0x00044, aud_pck_ctrl_2_reg);
 
 		/* SEND | CONT */
-		acr_DVE046_ctrl_reg |= 0x00000003;
+		acr_pck_ctrl_reg |= 0x00000003;
 	} else {
 		/* ~(SEND | CONT) */
-		acr_DVE046_ctrl_reg &= ~0x00000003;
+		acr_pck_ctrl_reg &= ~0x00000003;
 	}
 	/* HDMI_ACR_PKT_CTRL[0x0024] */
-	HDMI_OUTP(0x0024, acr_DVE046_ctrl_reg);
+	HDMI_OUTP(0x0024, acr_pck_ctrl_reg);
 }
 
 static void hdmi_msm_outpdw_chk(uint32 offset, uint32 data)
@@ -3375,12 +3371,12 @@ int hdmi_msm_audio_info_setup(bool enabled, u32 num_of_channels,
 					   -> See Table 17 in CEA-D spec */
 	uint32 check_sum, audio_info_0_reg, audio_info_1_reg;
 	uint32 audio_info_ctrl_reg;
-	u32 aud_DVE046_ctrl_2_reg;
+	u32 aud_pck_ctrl_2_reg;
 	u32 layout;
 
 	layout = (MSM_HDMI_AUDIO_CHANNEL_2 == num_of_channels) ? 0 : 1;
-	aud_DVE046_ctrl_2_reg = 1 | (layout << 1);
-	HDMI_OUTP(0x00044, aud_DVE046_ctrl_2_reg);
+	aud_pck_ctrl_2_reg = 1 | (layout << 1);
+	HDMI_OUTP(0x00044, aud_pck_ctrl_2_reg);
 
 	/* Please see table 20 Audio InfoFrame in HDMI spec
 	   FL  = front left
@@ -4814,9 +4810,7 @@ static int __init hdmi_msm_init(void)
 {
 	int rc;
 
-
-
-
+	if (msm_fb_detect_client("hdmi_msm"))
 		return 0;
 
 #ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY

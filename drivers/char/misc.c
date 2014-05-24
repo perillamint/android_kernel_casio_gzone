@@ -32,10 +32,6 @@
  *
  * Added devfs support. Richard Gooch <rgooch@atnf.csiro.au>  10-Jan-1998
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/module.h>
 
@@ -63,11 +59,7 @@ static DEFINE_MUTEX(misc_mtx);
 /*
  * Assigned numbers, used for dynamic minors
  */
-
-
-#define DYNAMIC_MINORS 128 
-
-
+#define DYNAMIC_MINORS 64 /* like dynamic majors */
 static DECLARE_BITMAP(misc_minors, DYNAMIC_MINORS);
 
 #ifdef CONFIG_PROC_FS

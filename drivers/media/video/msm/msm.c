@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/workqueue.h>
 #include <linux/delay.h>
@@ -45,11 +41,6 @@ static struct msm_cam_server_dev g_server_dev;
 static struct class *msm_class;
 static dev_t msm_devno;
 static int vnode_count;
-
-
-
-int i2c_error_flag;
-
 
 module_param(msm_camera_v4l2_nr, uint, 0644);
 MODULE_PARM_DESC(msm_camera_v4l2_nr, "videoX start number, -1 is autodetect");
@@ -346,15 +337,9 @@ static int msm_server_control(struct msm_cam_server_dev *server_dev,
 
 	/* wait for config return status */
 	D("Waiting for config status\n");
-
-	rc = wait_event_timeout(queue->wait,
+	rc = wait_event_interruptible_timeout(queue->wait,
 		!list_empty_careful(&queue->list),
-		out->timeout_ms);
-
-
-
-
-
+		msecs_to_jiffies(out->timeout_ms));
 	D("Waiting is over for config status\n");
 	if (list_empty_careful(&queue->list)) {
 		if (!rc)
@@ -657,10 +642,7 @@ static int msm_server_proc_ctrl_cmd(struct msm_cam_v4l2_device *pcam,
 	if (tmp_cmd->timeout_ms > 0)
 		ctrlcmd.timeout_ms = tmp_cmd->timeout_ms;
 	else
-		
-		
-		ctrlcmd.timeout_ms = 10000;
-		
+		ctrlcmd.timeout_ms = 1000;
 	ctrlcmd.vnode_id = pcam->vnode_id;
 	ctrlcmd.queue_idx = pcam->server_queue_idx;
 	ctrlcmd.config_ident = g_server_dev.config_info.config_dev_id[0];
@@ -715,10 +697,7 @@ static int msm_server_s_ctrl(struct msm_cam_v4l2_device *pcam,
 	ctrlcmd.length = sizeof(struct v4l2_control);
 	ctrlcmd.value = (void *)ctrl_data;
 	memcpy(ctrlcmd.value, ctrl, ctrlcmd.length);
-	
-	
-	ctrlcmd.timeout_ms = 10000;
-	
+	ctrlcmd.timeout_ms = 1000;
 	ctrlcmd.vnode_id = pcam->vnode_id;
 	ctrlcmd.queue_idx = pcam->server_queue_idx;
 	ctrlcmd.config_ident = g_server_dev.config_info.config_dev_id[0];
@@ -750,10 +729,7 @@ static int msm_server_g_ctrl(struct msm_cam_v4l2_device *pcam,
 	ctrlcmd.length = sizeof(struct v4l2_control);
 	ctrlcmd.value = (void *)ctrl_data;
 	memcpy(ctrlcmd.value, ctrl, ctrlcmd.length);
-	
-	
-	ctrlcmd.timeout_ms = 10000;
-    
+	ctrlcmd.timeout_ms = 1000;
 	ctrlcmd.vnode_id = pcam->vnode_id;
 	ctrlcmd.queue_idx = pcam->server_queue_idx;
 	ctrlcmd.config_ident = g_server_dev.config_info.config_dev_id[0];
@@ -780,10 +756,7 @@ static int msm_server_q_ctrl(struct msm_cam_v4l2_device *pcam,
 	ctrlcmd.length = sizeof(struct v4l2_queryctrl);
 	ctrlcmd.value = (void *)ctrl_data;
 	memcpy(ctrlcmd.value, queryctrl, ctrlcmd.length);
-	
-	
-	ctrlcmd.timeout_ms = 10000;
-    
+	ctrlcmd.timeout_ms = 1000;
 	ctrlcmd.vnode_id = pcam->vnode_id;
 	ctrlcmd.queue_idx = pcam->server_queue_idx;
 	ctrlcmd.config_ident = g_server_dev.config_info.config_dev_id[0];
@@ -894,10 +867,7 @@ static int msm_camera_get_crop(struct msm_cam_v4l2_device *pcam,
 	ctrlcmd.type = MSM_V4L2_GET_CROP;
 	ctrlcmd.length = sizeof(struct v4l2_crop);
 	ctrlcmd.value = (void *)crop;
-	
-	
-	ctrlcmd.timeout_ms = 10000;
-    
+	ctrlcmd.timeout_ms = 1000;
 	ctrlcmd.vnode_id = pcam->vnode_id;
 	ctrlcmd.queue_idx = pcam->server_queue_idx;
 	ctrlcmd.stream_type = pcam->dev_inst[idx]->image_mode;
@@ -1239,21 +1209,11 @@ static int msm_camera_v4l2_streamoff(struct file *f, void *pctx,
 		not in use when we free the buffers */
 	mutex_lock(&pcam->vid_lock);
 	mutex_lock(&pcam_inst->inst_lock);
-
-
-
-
-
+	pcam_inst->streamon = 0;
 	if (g_server_dev.use_count > 0)
 		rc = msm_server_streamoff(pcam, pcam_inst->my_index);
 	if (rc < 0)
 		pr_err("%s: hw failed to stop streaming\n", __func__);
-
-
-
-	pcam_inst->streamon = 0;
-
-
 
 	/* stop buffer streaming */
 	rc = vb2_streamoff(&pcam_inst->vid_bufq, buf_type);
@@ -1918,11 +1878,6 @@ static int msm_open(struct file *f)
 		pr_err("%s: error, daemon not yet started.", __func__);
 		return -EINVAL;
 	}
-
-
-	i2c_error_flag = false;
-
-
 	mutex_lock(&pcam->vid_lock);
 	for (i = 0; i < MSM_DEV_INST_MAX; i++) {
 		if (pcam->dev_inst[i] == NULL)
@@ -2208,10 +2163,6 @@ void msm_release_ion_client(struct kref *ref)
 static int msm_close(struct file *f)
 {
 	int rc = 0;
-
-	int i = 0;
-	int image_mode_use_count = 0;
-
 	struct msm_cam_v4l2_device *pcam;
 	struct msm_cam_v4l2_dev_inst *pcam_inst;
 	struct msm_cam_server_queue *queue;
@@ -2241,24 +2192,7 @@ static int msm_close(struct file *f)
 
 	pcam_inst->streamon = 0;
 	pcam->use_count--;
-
-    	for( i = 0; i < MSM_DEV_INST_MAX; i++) {
-        	if(pcam->dev_inst[i] != NULL) {
-            		if( pcam->dev_inst[i]->image_mode == pcam_inst->image_mode ) {
-                		image_mode_use_count++;
-                		D("image_mode_use_count increment %d\n",image_mode_use_count);
-            		}
-        	}
-    	}
-
-    	if( image_mode_use_count <= 1 )
-    	{
-        	D("pcam->dev_inst_map[%d] set NULL\n",pcam_inst->image_mode);
-    		pcam->dev_inst_map[pcam_inst->image_mode] = NULL;
-
-    	}
-
-
+	pcam->dev_inst_map[pcam_inst->image_mode] = NULL;
 	if (pcam_inst->vbqueue_initialized)
 		vb2_queue_release(&pcam_inst->vid_bufq);
 	D("%s Closing down instance %p ", __func__, pcam_inst);
@@ -2800,15 +2734,11 @@ static long msm_ioctl_config(struct file *fp, unsigned int cmd,
 		rc = msm_v4l2_evt_notify(config_cam->p_mctl, cmd, arg);
 		break;
 
-
-
-
-
-
-
-
-
-
+	case MSM_CAM_IOCTL_SET_MEM_MAP_INFO:
+		if (copy_from_user(&config_cam->mem_map, (void __user *)arg,
+				sizeof(struct msm_mem_map_info)))
+			rc = -EINVAL;
+		break;
 
 	default:{
 		/* For the rest of config command, forward to media controller*/
@@ -2826,43 +2756,39 @@ static long msm_ioctl_config(struct file *fp, unsigned int cmd,
 	return rc;
 }
 
+static int msm_mmap_config(struct file *fp, struct vm_area_struct *vma)
+{
+	struct msm_cam_config_dev *config_cam = fp->private_data;
+	int rc = 0;
+	int phyaddr;
+	int retval;
+	unsigned long size;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	D("%s: phy_addr=0x%x", __func__, config_cam->mem_map.cookie);
+	phyaddr = (int)config_cam->mem_map.cookie;
+	if (!phyaddr) {
+		pr_err("%s: no physical memory to map", __func__);
+		return -EFAULT;
+	}
+	memset(&config_cam->mem_map, 0,
+		sizeof(struct msm_mem_map_info));
+	size = vma->vm_end - vma->vm_start;
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	retval = remap_pfn_range(vma, vma->vm_start,
+					phyaddr >> PAGE_SHIFT,
+					size, vma->vm_page_prot);
+	if (retval) {
+		pr_err("%s: remap failed, rc = %d",
+					__func__, retval);
+		rc = -ENOMEM;
+		goto end;
+	}
+	D("%s: phy_addr=0x%x: %08lx-%08lx, pgoff %08lx\n",
+			__func__, (uint32_t)phyaddr,
+			vma->vm_start, vma->vm_end, vma->vm_pgoff);
+end:
+	return rc;
+}
 
 static int msm_open_config(struct inode *inode, struct file *fp)
 {
@@ -2870,13 +2796,6 @@ static int msm_open_config(struct inode *inode, struct file *fp)
 	struct msm_cam_config_dev *config_cam = container_of(inode->i_cdev,
 		struct msm_cam_config_dev, config_cdev);
 	D("%s: open %s\n", __func__, fp->f_path.dentry->d_name.name);
-
-	
-	if(g_server_dev.pcam_active == NULL) {
-		pr_err("%s: NULL pcam_active\n", __func__);
-		return -EINVAL;
-	}
-	
 
 	rc = nonseekable_open(inode, fp);
 	if (rc < 0) {
@@ -2963,11 +2882,7 @@ static const struct file_operations msm_fops_config = {
 	.open  = msm_open_config,
 	.poll  = msm_poll_config,
 	.unlocked_ioctl = msm_ioctl_config,
-
-
-
-
-
+	.mmap	= msm_mmap_config,
 	.release = msm_close_config,
 };
 

@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 /*
  *  BAM DMUX module.
@@ -1700,17 +1696,8 @@ static int ssrestart_check(void)
 {
 	DMUX_LOG_KERR("%s: modem timeout: BAM DMUX disabled\n", __func__);
 	in_global_reset = 1;
-
-
-
-
-
-	if (get_restart_level() <= RESET_SOC) {
+	if (get_restart_level() <= RESET_SOC)
 		DMUX_LOG_KERR("%s: ssrestart not enabled\n", __func__);
-		DMUX_LOG_KERR("%s: FATAL when RESET_SOC\n", __func__);
-		BUG();
-	}
-
 	return 1;
 }
 
@@ -1771,12 +1758,8 @@ static void ul_wakeup(void)
 	 */
 	if (wait_for_ack) {
 		bam_dmux_log("%s waiting for previous ack\n", __func__);
-
 		ret = wait_for_completion_timeout(
-					&ul_wakeup_ack_completion, 60 * HZ);
-		
-
-
+					&ul_wakeup_ack_completion, HZ);
 		wait_for_ack = 0;
 		if (unlikely(ret == 0) && ssrestart_check()) {
 			mutex_unlock(&wakeup_lock);
@@ -1787,20 +1770,14 @@ static void ul_wakeup(void)
 	INIT_COMPLETION(ul_wakeup_ack_completion);
 	power_vote(1);
 	bam_dmux_log("%s waiting for wakeup ack\n", __func__);
-
-	ret = wait_for_completion_timeout(&ul_wakeup_ack_completion, 60 * HZ);
-	
-
+	ret = wait_for_completion_timeout(&ul_wakeup_ack_completion, HZ);
 	if (unlikely(ret == 0) && ssrestart_check()) {
 		mutex_unlock(&wakeup_lock);
 		bam_dmux_log("%s timeout wakeup ack\n", __func__);
 		return;
 	}
 	bam_dmux_log("%s waiting completion\n", __func__);
-
-	ret = wait_for_completion_timeout(&bam_connection_completion, 60 * HZ);
-	
-
+	ret = wait_for_completion_timeout(&bam_connection_completion, HZ);
 	if (unlikely(ret == 0) && ssrestart_check()) {
 		mutex_unlock(&wakeup_lock);
 		bam_dmux_log("%s timeout power on\n", __func__);

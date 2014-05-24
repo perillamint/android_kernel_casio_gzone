@@ -19,10 +19,6 @@
    COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/interrupt.h>
 #include <linux/module.h>
@@ -761,10 +757,7 @@ int smp_conn_security(struct l2cap_conn *conn, __u8 sec_level)
 	hcon->smp_conn = conn;
 	hcon->pending_sec_level = sec_level;
 
-
-
-	if (hcon->link_mode & HCI_LM_MASTER) {
-
+	if ((hcon->link_mode & HCI_LM_MASTER) && !hcon->sec_req) {
 		struct link_key *key;
 
 		key = hci_find_link_key_type(hcon->hdev, conn->dst,
@@ -1038,14 +1031,6 @@ static int smp_distribute_keys(struct l2cap_conn *conn, __u8 force)
 
 	return 0;
 }
-
-
-void smp_conn_security_fail(struct l2cap_conn *conn, u8 code, u8 reason)
-{
-	BT_DBG("smp: %d %d ", code, reason);
-	smp_send_cmd(conn, SMP_CMD_PAIRING_FAIL, sizeof(reason), &reason);
-}
-
 
 int smp_link_encrypt_cmplt(struct l2cap_conn *conn, u8 status, u8 encrypt)
 {

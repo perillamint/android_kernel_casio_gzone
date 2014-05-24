@@ -9,10 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -220,28 +216,6 @@ static const struct dev_pm_ops pm8xxx_vib_pm_ops = {
 };
 #endif
 
-
-static int vib_onoff = 0;
-
-int __init get_silent_mode(void)
-{
-	return vib_onoff;
-}
-
-static int __init boot_silent_mode(char *boot_mode)
-{
-	if (!strncmp("on", boot_mode, 2)) {
-		printk("Silent boot mode : on\n");
-		vib_onoff = 1;
-	}
-	else
-		printk("Silent boot mode : off\n");
-
-	return 1;
-}
-__setup("androidboot.silent=", boot_silent_mode);
-
-
 static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 
 {
@@ -296,13 +270,8 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 	if (rc < 0)
 		goto err_read_vib;
 
-	
-	if(get_silent_mode() == 1) 
-        pm8xxx_vib_enable(&vib->timed_dev, 0);
-       else
-        pm8xxx_vib_enable(&vib->timed_dev, pdata->initial_vibrate_ms);
-	
-    
+	pm8xxx_vib_enable(&vib->timed_dev, pdata->initial_vibrate_ms);
+
 	platform_set_drvdata(pdev, vib);
 
 	vib_dev = vib;

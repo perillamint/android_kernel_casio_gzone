@@ -36,10 +36,6 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 /*
  * The Mass Storage Function acts as a USB Mass Storage device,
@@ -298,11 +294,6 @@
 #include <linux/usb/gadget.h>
 #include <linux/usb/composite.h>
 
-
-
-#include <linux/switch.h>
-
-
 #include "gadget_chips.h"
 
 
@@ -317,12 +308,6 @@ static const char fsg_string_interface[] = "Mass Storage";
 #define FSG_NO_OTG               1
 #define FSG_NO_INTR_EP           1
 
-
-
-#define SC_CDROM_MODE_CHANGE                0xf1
-#define SC_CDROM_TIMER_CANCEL               0xf2
-#define SC_CDROM_MODE_CHANGE_BS             0xf3
-
 #include "storage_common.c"
 
 #ifdef CONFIG_USB_CSW_HACK
@@ -333,23 +318,6 @@ static int csw_hack_sent;
 
 struct fsg_dev;
 struct fsg_common;
-
-
-
-static char *cdrom_mode_change[2]     = { "USB_CDROM=MODE_CHANGE", NULL };
-static char *cdrom_timer_cancel[2]    = { "USB_CDROM=TIMER_CANCEL", NULL };
-
-static const struct file_operations usb_cdrom_fops = {
-	.owner = THIS_MODULE,
-};
-
-static struct miscdevice usb_cdrom_device = {
-	.minor = MISC_DYNAMIC_MINOR,
-	.name = "usb_cdrom",
-	.fops = &usb_cdrom_fops,
-};
-
-
 
 /* FSF callback functions */
 struct fsg_operations {
@@ -1334,12 +1302,12 @@ static int do_request_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 	 *
 	 * FSG normally uses option a); enable this code to use option b).
 	 */
-
-
-
-
-
-
+#if 0
+	if (curlun && curlun->unit_attention_data != SS_NO_SENSE) {
+		curlun->sense_data = curlun->unit_attention_data;
+		curlun->unit_attention_data = SS_NO_SENSE;
+	}
+#endif
 
 	if (!curlun) {		/* Unsupported LUNs are okay */
 		common->bad_lun_okay = 1;
@@ -1815,14 +1783,14 @@ static int finish_reply(struct fsg_common *common)
 		 * STALL.  Not realizing the endpoint was halted, it wouldn't
 		 * clear the halt -- leading to problems later on.
 		 */
-
-
-
-
-
-
-
-
+#if 0
+		} else if (common->can_stall) {
+			if (fsg_is_set(common))
+				fsg_set_halt(common->fsg,
+					     common->fsg->bulk_out);
+			raise_exception(common, FSG_STATE_ABORT_BULK_OUT);
+			rc = -EINTR;
+#endif
 
 		/*
 		 * We can't stall.  Read in the excess data and throw it
@@ -2285,33 +2253,6 @@ static int do_scsi_command(struct fsg_common *common)
 		if (reply == 0)
 			reply = do_write(common);
 		break;
-
-
-
-    case SC_CDROM_MODE_CHANGE:
-	case SC_CDROM_MODE_CHANGE_BS:
-        
-    
-        
-		
-
-
-
-
-
-
-
-		printk("%s SC_CDROM_MODE_CHANGE Called \n",__func__);
-		kobject_uevent_env(&usb_cdrom_device.this_device->kobj,
-				KOBJ_CHANGE, cdrom_mode_change);				
-        break;
-		
-	case SC_CDROM_TIMER_CANCEL:
-		printk("%s SC_CDROM_TIMER_CANCEL Called \n",__func__);
-		kobject_uevent_env(&usb_cdrom_device.this_device->kobj,
-				KOBJ_CHANGE, cdrom_timer_cancel);
-		break;		
-
 
 	/*
 	 * Some mandatory commands that we recognize but don't implement.
@@ -3082,18 +3023,6 @@ buffhds_first_it:
 	}
 	kfree(pathbuf);
 
-
-
-	curlun = common->luns;
-	if (curlun->cdrom) {
-		rc = misc_register(&usb_cdrom_device);
-		if (rc) {
-			printk(KERN_ERR "Initial USB cdrom mode driver  failed \n");
-			goto error_release;
-		}
-	}
-
-
 	DBG(common, "I/O thread pid: %d\n", task_pid_nr(common->thread_task));
 
 	wake_up_process(common->thread_task);
@@ -3293,43 +3222,6 @@ static int fsg_bind_config(struct usb_composite_dev *cdev,
 		fsg_common_get(fsg->common);
 	return rc;
 }
-
-static int usb_cdrom_bind_config(struct usb_composite_dev *cdev,
-			   struct usb_configuration *c,
-			   struct fsg_common *common)
-{
-	struct fsg_dev *csg;
-	int rc;
-
-	csg = kzalloc(sizeof *csg, GFP_KERNEL);
-	if (unlikely(!csg))
-		return -ENOMEM;
-
-	csg->function.name        = "usb_cdrom";
-	csg->function.strings     = fsg_strings_array;
-	csg->function.bind        = fsg_bind;
-	csg->function.unbind      = fsg_unbind;
-	csg->function.setup       = fsg_setup;
-	csg->function.set_alt     = fsg_set_alt;
-	csg->function.disable     = fsg_disable;
-
-	csg->common               = common;
-	
-
-
-
-
-
-
-
-	rc = usb_add_function(c, &csg->function);
-	if (unlikely(rc))
-		kfree(csg);
-	else
-		fsg_common_get(csg->common);
-	return rc;
-}
-
 
 static inline int __deprecated __maybe_unused
 fsg_add(struct usb_composite_dev *cdev, struct usb_configuration *c,

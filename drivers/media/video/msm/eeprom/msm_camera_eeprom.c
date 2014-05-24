@@ -9,10 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 #include "msm_camera_eeprom.h"
 
 int32_t msm_camera_eeprom_read(struct msm_eeprom_ctrl_t *ectrl,
@@ -22,8 +18,6 @@ int32_t msm_camera_eeprom_read(struct msm_eeprom_ctrl_t *ectrl,
 	int rc = 0;
 	if (ectrl->func_tbl.eeprom_set_dev_addr != NULL)
 		ectrl->func_tbl.eeprom_set_dev_addr(ectrl, &reg_addr);
-
-	reg_addr = reg_addr & 0xFF00;
 
 	if (!convert_endian) {
 		rc = msm_camera_i2c_read_seq(

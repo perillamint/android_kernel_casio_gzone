@@ -1,8 +1,3 @@
-#/**********************************************************************
-#* File Name: block/partitions/Kconfig
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 #
 # Partition configuration
 #
@@ -254,9 +249,3 @@ config SYSV68_PARTITION
 	  partition table format used by Motorola Delta machines (using
 	  sysv68).
 	  Otherwise, say N.
-
-config DVE068_PROC_EMMC
-	bool "DVE068 proc emmc support" 
-	depends on EFI_PARTITION
-	help
-	  DVE068 proc emmc support.

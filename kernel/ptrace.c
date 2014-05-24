@@ -6,10 +6,6 @@
  * Common interfaces for "ptrace()" which we do not want
  * to continually duplicate across every architecture.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/capability.h>
 #include <linux/export.h>
@@ -121,43 +117,9 @@ void __ptrace_unlink(struct task_struct *child)
 	 * TASK_KILLABLE sleeps.
 	 */
 	if (child->jobctl & JOBCTL_STOP_PENDING || task_is_traced(child))
-        ptrace_signal_wake_up(child, true);
+		signal_wake_up(child, task_is_traced(child));
 
 	spin_unlock(&child->sighand->siglock);
-}
-
-
-static bool ptrace_freeze_traced(struct task_struct *task)
-{
-	bool ret = false;
-
-	
-	if (task->jobctl & JOBCTL_LISTENING)
-		return ret;
-
-	spin_lock_irq(&task->sighand->siglock);
-	if (task_is_traced(task) && !__fatal_signal_pending(task)) {
-		task->state = __TASK_TRACED;
-		ret = true;
-	}
-	spin_unlock_irq(&task->sighand->siglock);
-
-	return ret;
-}
-
-static void ptrace_unfreeze_traced(struct task_struct *task)
-{
-	if (task->state != __TASK_TRACED)
-		return;
-
-	WARN_ON(!task->ptrace || task->parent != current);
-
-	spin_lock_irq(&task->sighand->siglock);
-	if (__fatal_signal_pending(task))
-		wake_up_state(task, __TASK_TRACED);
-	else
-		task->state = TASK_TRACED;
-	spin_unlock_irq(&task->sighand->siglock);
 }
 
 /**
@@ -189,29 +151,24 @@ int ptrace_check_attach(struct task_struct *child, bool ignore_state)
 	 * be changed by us so it's not changing right after this.
 	 */
 	read_lock(&tasklist_lock);
-	if (child->ptrace && child->parent == current) {
-		WARN_ON(child->state == __TASK_TRACED);
+	if ((child->ptrace & PT_PTRACED) && child->parent == current) {
 		/*
 		 * child->sighand can't be NULL, release_task()
 		 * does ptrace_unlink() before __exit_signal().
 		 */
-		if (ignore_state || ptrace_freeze_traced(child))
+		spin_lock_irq(&child->sighand->siglock);
+		WARN_ON_ONCE(task_is_stopped(child));
+		if (ignore_state || (task_is_traced(child) &&
+				     !(child->jobctl & JOBCTL_LISTENING)))
 			ret = 0;
+		spin_unlock_irq(&child->sighand->siglock);
 	}
 	read_unlock(&tasklist_lock);
 
-	if (!ret && !ignore_state) {
-		if (!wait_task_inactive(child, __TASK_TRACED)) {
-			
+	if (!ret && !ignore_state)
+		ret = wait_task_inactive(child, TASK_TRACED) ? 0 : -ESRCH;
 
-
-
-
-			WARN_ON(child->state == __TASK_TRACED);
-			ret = -ESRCH;
-		}
-	}
-
+	/* All systems go.. */
 	return ret;
 }
 
@@ -354,7 +311,7 @@ static int ptrace_attach(struct task_struct *task, long request,
 	 */
 	if (task_is_stopped(task) &&
 	    task_set_jobctl_pending(task, JOBCTL_TRAP_STOP | JOBCTL_TRAPPING))
-        signal_wake_up_state(task, __TASK_STOPPED);
+		signal_wake_up(task, 1);
 
 	spin_unlock(&task->sighand->siglock);
 
@@ -934,8 +891,6 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
 		goto out_put_task_struct;
 
 	ret = arch_ptrace(child, request, addr, data);
-	if (ret || request != PTRACE_DETACH)
-		ptrace_unfreeze_traced(child);
 
  out_put_task_struct:
 	put_task_struct(child);
@@ -1075,11 +1030,8 @@ asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
 
 	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
 				  request == PTRACE_INTERRUPT);
-	if (!ret) {
+	if (!ret)
 		ret = compat_arch_ptrace(child, request, addr, data);
-		if (ret || request != PTRACE_DETACH)
-			ptrace_unfreeze_traced(child);
-	}
 
  out_put_task_struct:
 	put_task_struct(child);

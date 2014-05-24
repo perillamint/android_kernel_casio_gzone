@@ -12,11 +12,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
-
 
 #include <linux/input.h>
 #include <linux/keyreset.h>
@@ -26,12 +21,6 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/syscalls.h>
-
-
-
-
-
-
 
 
 struct keyreset_state {
@@ -53,35 +42,9 @@ static void deferred_restart(struct work_struct *dummy)
 	restart_requested = 2;
 	sys_sync();
 	restart_requested = 3;
-	
-	 kernel_restart(NULL);
-       
-	
-	
+	kernel_restart(NULL);
 }
 static DECLARE_WORK(restart_work, deferred_restart);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static void keyreset_event(struct input_handle *handle, unsigned int type,
 			   unsigned int code, int value)
@@ -89,43 +52,14 @@ static void keyreset_event(struct input_handle *handle, unsigned int type,
 	unsigned long flags;
 	struct keyreset_state *state = handle->private;
 
-		
-
 	if (type != EV_KEY)
 		return;
 
-	
-	
 	if (code >= KEY_MAX)
 		return;
 
-
-
-
-
-
-
-
-
-
-
-
-
 	if (!test_bit(code, state->keybit))
-	{
-
-
-
-
-
-
-
-
-
-
-
 		return;
-	}
 
 	spin_lock_irqsave(&state->lock, flags);
 	if (!test_bit(code, state->key) == !value)
@@ -141,57 +75,16 @@ static void keyreset_event(struct input_handle *handle, unsigned int type,
 		if (value)
 			state->key_down++;
 		else
-	
-		{
-
-
-
-
-
-
-
-
-
 			state->key_down--;
-		}
-	
 	}
 	if (state->key_down == 0 && state->key_up == 0)
-	
-	{
+		state->restart_disabled = 0;
 
-
-
-
-
-
-
-
-
-            state->restart_disabled = 0;
-	}
-	
 	pr_debug("reset key changed %d %d new state %d-%d-%d\n", code, value,
 		 state->key_down, state->key_up, state->restart_disabled);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	if (value && !state->restart_disabled &&
-
 	    state->key_down == state->key_down_target) {
-
 		state->restart_disabled = 1;
 		if (restart_requested)
 			panic("keyboard reset failed, %d", restart_requested);
@@ -202,8 +95,6 @@ static void keyreset_event(struct input_handle *handle, unsigned int type,
 			schedule_work(&restart_work);
 			restart_requested = 1;
 		}
-
-	
 	}
 done:
 	spin_unlock_irqrestore(&state->lock, flags);

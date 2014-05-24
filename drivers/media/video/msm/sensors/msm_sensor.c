@@ -9,21 +9,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include "msm_sensor.h"
 #include "msm.h"
 #include "msm_ispif.h"
 #include "msm_camera_i2c_mux.h"
-#include <media/camera_function.h>
-
-#if defined(FEATURE_DVE021_DVE068_DVE042)
-#include <linux/mfd/pm8xxx/pm8xxx-adc.h>
-#endif
-
 
 /*=============================================================*/
 int32_t msm_sensor_adjust_frame_lines(struct msm_sensor_ctrl_t *s_ctrl,
@@ -153,28 +143,9 @@ void msm_sensor_group_hold_off(struct msm_sensor_ctrl_t *s_ctrl)
 int32_t msm_sensor_set_fps(struct msm_sensor_ctrl_t *s_ctrl,
 						struct fps_cfg *fps)
 {
-
-
-	uint16_t total_lines_per_frame;
-	int32_t rc = 0;
 	s_ctrl->fps_divider = fps->fps_div;
 
-	if (s_ctrl->curr_res != MSM_SENSOR_INVALID_RES) {
-		total_lines_per_frame = (uint16_t)
-			((s_ctrl->curr_frame_length_lines) *
-			s_ctrl->fps_divider/Q10);
-
-		rc = msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
-			s_ctrl->sensor_output_reg_addr->frame_length_lines,
-			total_lines_per_frame, MSM_CAMERA_I2C_WORD_DATA);
-	}
-	return rc;
-
-
-
-
-
-
+	return 0;
 }
 
 int32_t msm_sensor_write_exp_gain1(struct msm_sensor_ctrl_t *s_ctrl,
@@ -280,17 +251,9 @@ int32_t msm_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 	if (update_type == MSM_SENSOR_REG_INIT) {
 		s_ctrl->curr_csi_params = NULL;
 		msm_sensor_enable_debugfs(s_ctrl);
-
-#if !defined(DVE005_CAMERA_DRV)
 		msm_sensor_write_init_settings(s_ctrl);
-#endif 
 	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
-#if defined(DVE005_CAMERA_DRV)
-		rc = s_ctrl->func_tbl->sensor_write_res_settings(s_ctrl, res);
-#else 
 		msm_sensor_write_res_settings(s_ctrl, res);
-#endif 
-
 		if (s_ctrl->curr_csi_params != s_ctrl->csi_params[res]) {
 			s_ctrl->curr_csi_params = s_ctrl->csi_params[res];
 			s_ctrl->curr_csi_params->csid_params.lane_assign =
@@ -424,30 +387,6 @@ long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	}
 }
 
-
-#if defined(FEATURE_DVE021_DVE068_DVE042)
-static int msm_mctl_get_gg3_temperature_val(int* temperature)
-{
-	int rc = 0;
-	struct pm8xxx_adc_chan_result result;
-
-	rc = pm8xxx_adc_read(CHANNEL_MUXOFF, &result);
-	if (rc < 0){
-		pr_err("pm8xxx adc read error with %d\n", rc);
-		
-		*temperature = 100000;
-		
-		return 0;
-	}
-	*temperature = (int)result.physical;
-
-	CDBG("%s: temperature:%d\n", __func__, *temperature);
-
-	return rc;
-}
-#endif
-
-
 int32_t msm_sensor_get_csi_params(struct msm_sensor_ctrl_t *s_ctrl,
 		struct csi_lane_params_t *sensor_output_info)
 {
@@ -528,107 +467,10 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 					s_ctrl,
 					cdata.mode,
 					cdata.rs);
-
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-
 			break;
 
 		case CFG_SET_EFFECT:
-
-			CDBG("case CFG_SET_EFFECT:");
-			if (s_ctrl->func_tbl->
-				sensor_set_effect == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_set_effect(
-					s_ctrl,cdata.cfg.effect);
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-
 			break;
-
-
-		case CFG_SET_SCENE_SELECT:
-			CDBG("case CFG_SET_SCENE_SELECT");
-			if (s_ctrl->func_tbl->
-				sensor_set_scene == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_set_scene(
-					s_ctrl,cdata.cfg.scene);
-			break;
-
-		case CFG_SET_PICT_SIZE:
-			CDBG("case CFG_SET_PICT_SIZE");
-
-
-
-
-
-
-
-
-
-
-			break;
-
-		case CFG_SET_WB:
-			CDBG("case CFG_SET_WB");
-			if (s_ctrl->func_tbl->
-				sensor_set_wb == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_set_wb(
-					s_ctrl,cdata.cfg.wb_val);
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			break;
-
-		case CFG_SET_ANTIBANDING:
-			CDBG("case CFG_SET_ANTIBANDING");
-			if (s_ctrl->func_tbl->
-				sensor_set_antibanding == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				 sensor_set_antibanding(
-					s_ctrl,cdata.cfg.antibanding);
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			break;
-
-		case CFG_SET_EXP_COMPENSATION:
-			CDBG("case CFG_SET_EXP_COMPENSATION");
-			if (s_ctrl->func_tbl->
-				sensor_set_exp_compensation == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_set_exp_compensation(
-					s_ctrl,cdata.cfg.exp_compensation);
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-            		break;
-
 
 		case CFG_SENSOR_INIT:
 			if (s_ctrl->func_tbl->
@@ -641,12 +483,6 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				s_ctrl,
 				cdata.mode,
 				&(cdata.cfg.init_info));
-
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-
 			break;
 
 		case CFG_GET_OUTPUT_INFO:
@@ -665,194 +501,6 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				sizeof(struct sensor_cfg_data)))
 				rc = -EFAULT;
 			break;
-
-
-		case CFG_GET_MAKER_NOTE:
-			CDBG("case CFG_GET_MAKER_NOTE");
-			if (s_ctrl->func_tbl->
-				sensor_get_maker_note == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_get_maker_note(
-					s_ctrl, &(cdata.cfg.get_exif_maker_note) );
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			if (copy_to_user((void *)argp, &cdata,
-				sizeof(struct sensor_cfg_data))) {
-				rc = -EFAULT;
-			}
-			break;
-
-		case CFG_GET_PARAM_EXIF:
-			CDBG("case CFG_GET_PARAM_EXIF");
-			if (s_ctrl->func_tbl->
-				sensor_get_exif_param == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_get_exif_param(
-					s_ctrl, &(cdata.cfg.get_exif_param) );
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			if (rc >= 0) {
-				if (copy_to_user((void *)argp, &cdata,
-					sizeof(struct sensor_cfg_data))) {
-					rc = -EFAULT;
-				}
-			}
-			break;
-
-		case CFG_GET_EEPROM_READ:
-			CDBG("case CFG_GET_EEPROM_READ");
-			if (s_ctrl->func_tbl->
-				sensor_get_eeprom_otp_info == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_get_eeprom_otp_info(
-					s_ctrl, &(cdata.cfg.eeprom_otp_info) );
-			if (copy_to_user((void *)argp, &cdata,
-				sizeof(struct sensor_cfg_data))) {
-				rc = -EFAULT;
-			}
-			break;
-
-		case CFG_SET_FRAME_RATE_MODE:
-			CDBG("case CFG_SET_FRAME_RATE_MODE");
-			if (s_ctrl->func_tbl->
-				sensor_set_frame_rate_mode == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_set_frame_rate_mode(
-					s_ctrl,cdata.cfg.frame_rate_mode);
-			break;
-
-		case CFG_GET_HDR_BRIGHTNESS:
-			CDBG("case CFG_GET_HDR_BRIGHTNESS");
-			if (s_ctrl->func_tbl->
-				sensor_get_hdr_brightness == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_get_hdr_brightness(
-					s_ctrl, &(cdata.cfg.hdr_brightness) );
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			if (rc >= 0) {
-				if (copy_to_user((void *)argp, &cdata,
-					sizeof(struct sensor_cfg_data))) {
-					rc = -EFAULT;
-				}
-			}
-			break;
-
-		case CFG_SET_HDR_BRIGHTNESS:
-			CDBG("case CFG_SET_HDR_BRIGHTNESS");
-			if (s_ctrl->func_tbl->
-				sensor_set_hdr_brightness == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_set_hdr_brightness(s_ctrl, cdata.cfg.hdr_brightness );
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			break;
-
-		case CFG_SET_CAP_MODE_ENABLE:
-			CDBG("case CFG_SET_CAP_MODE_ENABLE");
-			if (s_ctrl->func_tbl->
-				sensor_set_cap_mode_enable == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_set_cap_mode_enable(
-					s_ctrl,cdata.cfg.cap_mode_enable);
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			break;
-
-		case CFG_GET_DEVICE_ID:
-			CDBG("case CFG_GET_DEVICE_ID");
-			if (s_ctrl->func_tbl->
-				sensor_get_device_id == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_get_device_id(
-					s_ctrl, &(cdata.cfg.device_id) );
-			if(rc < 0){
-				pr_err("%s: i2c read/write failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			if (rc >= 0) {
-				if (copy_to_user((void *)argp, &cdata,
-					sizeof(struct sensor_cfg_data))) {
-					rc = -EFAULT;
-				}
-			}
-			break;
-
-
-#if defined(FEATURE_DVE021_DVE068_DVE042)
-		case CFG_GET_TEMPERATURE_VAL:
-			CDBG("case CFG_GET_TEMPERATURE_VAL");
-			rc = msm_mctl_get_gg3_temperature_val(&cdata.cfg.temperature);
-			if(rc < 0){
-				pr_err("%s: get temperature failed \n",__func__);
-			}
-			if(rc >= 0){
-				if(copy_to_user((void *)argp, &cdata,
-				sizeof(struct sensor_cfg_data))){
-					rc = -EFAULT;
-				}
-			}
-			break;
-#endif
-
-
-
-		case CFG_GET_EXPOSURE_INFO:
-			CDBG("case CFG_GET_EXPOSURE_INFO");
-			if (s_ctrl->func_tbl->
-				sensor_get_exposure_info == NULL) {
-				rc = -EFAULT;
-				break;
-			}
-			rc = s_ctrl->func_tbl->
-				sensor_get_exposure_info(s_ctrl, &(cdata.cfg.fine_integration_time) );
-			if(rc < 0){
-				pr_err("%s: sensor_get_exposure_info failed \n",__func__);
-				i2c_error_flag = true;
-			}
-			if (rc >= 0) {
-				if (copy_to_user((void *)argp, &cdata,
-					sizeof(struct sensor_cfg_data))) {
-					rc = -EFAULT;
-				}
-			}
-			break;
-
-
 
 		case CFG_START_STREAM:
 			if (s_ctrl->func_tbl->sensor_start_stream == NULL) {
@@ -896,13 +544,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 }
 
 static struct msm_cam_clk_info cam_clk_info[] = {
-
-
-	{"cam_clk", MSM_SENSOR_MCLK_25HZ},
-
-
-
-
+	{"cam_clk", MSM_SENSOR_MCLK_24HZ},
 };
 
 int32_t msm_sensor_enable_i2c_mux(struct msm_camera_i2c_conf *i2c_conf)
@@ -1106,15 +748,6 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 		rc = msm_sensor_match_id(s_ctrl);
 	if (rc < 0)
 		goto probe_fail;
-
-#if 1 DVE005_CAMERA_DRV
-	if (s_ctrl->func_tbl->sensor_otp_read){
-		rc = s_ctrl->func_tbl->sensor_otp_read(s_ctrl);
-	}
-	if (rc < 0){
-		goto probe_fail;
-	}
-#endif 
 
 	snprintf(s_ctrl->sensor_v4l2_subdev.name,
 		sizeof(s_ctrl->sensor_v4l2_subdev.name), "%s", id->name);

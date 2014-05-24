@@ -20,10 +20,6 @@
    COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #define MGMT_INDEX_NONE			0xFFFF
 
@@ -64,9 +60,7 @@ struct mgmt_rp_read_info {
 	__u8 hci_ver;
 	__u16 hci_rev;
 	__u8 name[MGMT_MAX_NAME_LENGTH];
-
 	__u8 le_white_list_size;
-
 } __packed;
 
 struct mgmt_mode {
@@ -253,7 +247,6 @@ struct mgmt_cp_unset_rssi_reporter {
 	bdaddr_t	bdaddr;
 } __packed;
 
-
 #define MGMT_OP_LE_READ_WHITE_LIST_SIZE	0xE000
 
 #define MGMT_OP_LE_CLEAR_WHITE_LIST	0xE001
@@ -273,13 +266,6 @@ struct mgmt_cp_le_remove_dev_white_list {
 #define MGMT_OP_LE_CREATE_CONN_WHITE_LIST	0xE004
 
 #define MGMT_OP_LE_CANCEL_CREATE_CONN_WHITE_LIST	0xE005
-
-
-
-#define MGMT_OP_LE_CANCEL_CREATE_CONN  0xE006
-struct mgmt_cp_le_cancel_create_conn {
-  bdaddr_t  bdaddr;
-} __packed;
 
 #define MGMT_EV_CMD_COMPLETE		0x0001
 struct mgmt_ev_cmd_complete {

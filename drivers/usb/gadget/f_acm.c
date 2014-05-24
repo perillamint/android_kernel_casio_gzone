@@ -12,10 +12,6 @@
  * Public License ("GPL") as published by the Free Software Foundation,
  * either version 2 of that License or (at your option) any later version.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 /* #define VERBOSE_DEBUG */
 
@@ -183,11 +179,7 @@ static int acm_port_disconnect(struct f_acm *acm)
 /* notification endpoint uses smallish and infrequent fixed-size messages */
 
 #define GS_LOG2_NOTIFY_INTERVAL		5	/* 1 << 5 == 32 msec */
-
-#define GS_NOTIFY_MAXPACKET		0x10
-
-
-
+#define GS_NOTIFY_MAXPACKET		10	/* notification + 2 bytes */
 
 /* interface and class descriptors: */
 
@@ -239,11 +231,7 @@ acm_call_mgmt_descriptor = {
 	.bLength =		sizeof(acm_call_mgmt_descriptor),
 	.bDescriptorType =	USB_DT_CS_INTERFACE,
 	.bDescriptorSubType =	USB_CDC_CALL_MANAGEMENT_TYPE,
-
-	.bmCapabilities =	0x3,
-
-
-
+	.bmCapabilities =	0,
 	/* .bDataInterface = DYNAMIC */
 };
 
@@ -251,11 +239,7 @@ static struct usb_cdc_acm_descriptor acm_descriptor = {
 	.bLength =		sizeof(acm_descriptor),
 	.bDescriptorType =	USB_DT_CS_INTERFACE,
 	.bDescriptorSubType =	USB_CDC_ACM_TYPE,
-
-	.bmCapabilities =	0xF,
-
-
-
+	.bmCapabilities =	USB_CDC_CAP_LINE,
 };
 
 static struct usb_cdc_union_desc acm_union_desc = {
@@ -274,11 +258,7 @@ static struct usb_endpoint_descriptor acm_fs_notify_desc = {
 	.bEndpointAddress =	USB_DIR_IN,
 	.bmAttributes =		USB_ENDPOINT_XFER_INT,
 	.wMaxPacketSize =	cpu_to_le16(GS_NOTIFY_MAXPACKET),
-
-	.bInterval =		0x9,
-
-
-
+	.bInterval =		1 << GS_LOG2_NOTIFY_INTERVAL,
 };
 
 static struct usb_endpoint_descriptor acm_fs_in_desc = {
@@ -697,58 +677,6 @@ static void acm_connect(struct gserial *port)
 	acm_notify_serial_state(acm);
 }
 
-
-unsigned int acm_get_dtr(struct gserial *port)
-{
-	struct f_acm		*acm = port_to_acm(port);
-
-	if (acm->port_handshake_bits & ACM_CTRL_DTR)
-		return 1;
-	else
-		return 0;
-}
-
-unsigned int acm_get_rts(struct gserial *port)
-{
-	struct f_acm		*acm = port_to_acm(port);
-
-	if (acm->port_handshake_bits & ACM_CTRL_RTS)
-		return 1;
-	else
-		return 0;
-}
-
-unsigned int acm_send_carrier_detect(struct gserial *port, unsigned int yes)
-{
-	struct f_acm		*acm = port_to_acm(port);
-	u16			state;
-
-	state = acm->serial_state;
-	state &= ~ACM_CTRL_DCD;
-	if (yes)
-		state |= ACM_CTRL_DCD;
-
-	acm->serial_state = state;
-	return acm_notify_serial_state(acm);
-
-}
-
-unsigned int acm_send_ring_indicator(struct gserial *port, unsigned int yes)
-{
-	struct f_acm		*acm = port_to_acm(port);
-	u16			state;
-
-	state = acm->serial_state;
-	state &= ~ACM_CTRL_RI;
-	if (yes)
-		state |= ACM_CTRL_RI;
-
-	acm->serial_state = state;
-	return acm_notify_serial_state(acm);
-
-}
-
-
 static void acm_disconnect(struct gserial *port)
 {
 	struct f_acm		*acm = port_to_acm(port);
@@ -986,12 +914,6 @@ int acm_bind_config(struct usb_configuration *c, u8 port_num)
 	acm->transport = gacm_ports[port_num].transport;
 
 	acm->port.connect = acm_connect;
-
-	acm->port.get_dtr = acm_get_dtr;
-	acm->port.get_rts = acm_get_rts;
-	acm->port.send_carrier_detect = acm_send_carrier_detect;
-	acm->port.send_ring_indicator = acm_send_ring_indicator;
-
 	acm->port.disconnect = acm_disconnect;
 	acm->port.send_break = acm_send_break;
 	acm->port.send_modem_ctrl_bits = acm_send_modem_ctrl_bits;

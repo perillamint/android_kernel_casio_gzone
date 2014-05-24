@@ -8,10 +8,6 @@
  *
  * For licensing details see kernel-base/COPYING
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/fs.h>
 #include <linux/mm.h>
@@ -5122,10 +5118,7 @@ static void sw_perf_event_destroy(struct perf_event *event)
 
 static int perf_swevent_init(struct perf_event *event)
 {
-
-
-	u64 event_id = event->attr.config;
-
+	int event_id = event->attr.config;
 
 	if (event->attr.type != PERF_TYPE_SOFTWARE)
 		return -ENOENT;

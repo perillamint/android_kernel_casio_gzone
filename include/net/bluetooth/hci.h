@@ -21,10 +21,6 @@
    COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
    SOFTWARE IS DISCLAIMED.
 */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #ifndef __HCI_H
 #define __HCI_H
@@ -971,7 +967,6 @@ struct hci_cp_le_create_conn {
 
 #define HCI_OP_LE_CREATE_CONN_CANCEL	0x200e
 
-
 #define HCI_OP_LE_READ_WHITE_LIST_SIZE	0x200F
 struct hci_rp_le_read_white_list_size {
 	__u8     status;
@@ -991,7 +986,6 @@ struct hci_cp_le_remove_dev_white_list {
 	__u8     addr_type;
 	bdaddr_t addr;
 } __packed;
-
 
 #define HCI_OP_LE_CONN_UPDATE		0x2013
 struct hci_cp_le_conn_update {

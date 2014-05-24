@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/device.h>
@@ -48,19 +44,8 @@
 #include <mach/clk.h>
 #include <mach/mpm.h>
 #include <mach/msm_xo.h>
-
-#include <linux/gpio.h> 
 #include <mach/msm_bus.h>
 #include <mach/rpm-regulator.h>
-
-
-#include <linux/switch.h>
-
-
-#include <mach/irqs.h>
-#include <linux/mfd/pm8xxx/pm8xxx-adc.h>
-
-#include <linux/syscalls.h>
 
 #define MSM_USB_BASE	(motg->regs)
 #define DRIVER_NAME	"msm_otg"
@@ -80,34 +65,6 @@
 #define USB_PHY_VDD_DIG_VOL_NONE	0 /*uV */
 #define USB_PHY_VDD_DIG_VOL_MIN	1045000 /* uV */
 #define USB_PHY_VDD_DIG_VOL_MAX	1320000 /* uV */
-
-
-#define ADC_TEST_FREQ			500
-#define USB_AUDIO_ERROR_MARGIN	10 
-#define USB_AUDIO_VOLTAGE_TYP	400000
-#define USB_AUDIO_VOLTAGE_MIN	(USB_AUDIO_VOLTAGE_TYP / 100) * (100 - USB_AUDIO_ERROR_MARGIN)
-#define USB_AUDIO_VOLTAGE_MAX	(USB_AUDIO_VOLTAGE_TYP / 100) * (100 + USB_AUDIO_ERROR_MARGIN)
-#define USB_AUDIO_REGISTOR_TYP	29000
-#define USB_AUDIO_REGISTOR_MIN	(USB_AUDIO_REGISTOR_TYP / 100) * (100 - USB_AUDIO_ERROR_MARGIN)
-#define USB_AUDIO_REGISTOR_MAX	(USB_AUDIO_REGISTOR_TYP / 100) * (100 + USB_AUDIO_ERROR_MARGIN)
-
-#define A_LP_SEL_PM 			36
-#define PM8921_GPIO_BASE		NR_GPIO_IRQS
-#define PM8921_GPIO_PM_TO_SYS(pm_gpio)  (pm_gpio - 1 + PM8921_GPIO_BASE)
-
-#define CHG_CHECK_FREQ			1500
-int check_charger_mode; 
-
-
-static struct switch_dev sdev;
-
-enum {
-	NO_DEVICE 		= 0,
-	USB_AUDIO_OUT	= 1,
-};
-
-#define USE_INTR_FROM_VBUS	0
-
 
 static DECLARE_COMPLETION(pmic_vbus_init);
 static struct msm_otg *the_msm_otg;
@@ -1009,14 +966,11 @@ static int msm_otg_resume(struct msm_otg *motg)
 skip_phy_resume:
 	if (device_may_wakeup(phy->dev)) {
 		disable_irq_wake(motg->irq);
-	
-
 		if (motg->pdata->pmic_id_irq)
 			disable_irq_wake(motg->pdata->pmic_id_irq);
 		if (pdata->otg_control == OTG_PHY_CONTROL &&
 			pdata->mpm_otgsessvld_int)
 			msm_mpm_set_pin_wake(pdata->mpm_otgsessvld_int, 0);
-
 	}
 	if (bus)
 		set_bit(HCD_FLAG_HW_ACCESSIBLE, &(bus_to_hcd(bus))->flags);
@@ -1103,7 +1057,7 @@ psy_not_supported:
 	dev_dbg(motg->phy.dev, "Power Supply doesn't support USB charger\n");
 	return -ENXIO;
 }
-static int USB_NON_STANDARD = 0;
+
 static void msm_otg_notify_charger(struct msm_otg *motg, unsigned mA)
 {
 	struct usb_gadget *g = motg->phy.otg->gadget;
@@ -1117,19 +1071,6 @@ static void msm_otg_notify_charger(struct msm_otg *motg, unsigned mA)
 		motg->chg_type == USB_ACA_C_CHARGER) &&
 			mA > IDEV_ACA_CHG_LIMIT)
 		mA = IDEV_ACA_CHG_LIMIT;
-
-
-	if((motg->chg_type == USB_SDP_CHARGER) && mA == 0){
-		mA = 500;
-	}
-
-
-
-	if(check_charger_mode && (motg->chg_type == USB_SDP_CHARGER)){
-		mA =0;
-		pm8921_disable_source_current(false); 
-	}
-
 
 	if (msm_otg_notify_chg_type(motg))
 		dev_err(motg->phy.dev,
@@ -1162,10 +1103,9 @@ static int msm_otg_set_power(struct usb_phy *phy, unsigned mA)
 	 * IDEV_CHG can be drawn irrespective of suspend/un-configured
 	 * states when CDP/ACA is connected.
 	 */
-	if (motg->chg_type == USB_SDP_CHARGER && !USB_NON_STANDARD){
+	if (motg->chg_type == USB_SDP_CHARGER)
 		msm_otg_notify_charger(motg, mA);
-		USB_NON_STANDARD = 0;
-	}
+
 	return 0;
 }
 
@@ -1766,70 +1706,66 @@ static void msm_chg_enable_primary_det(struct msm_otg *motg)
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+static bool msm_chg_check_dcd(struct msm_otg *motg)
+{
+	struct usb_phy *phy = &motg->phy;
+	u32 line_state;
+	bool ret = false;
+
+	switch (motg->pdata->phy_type) {
+	case CI_45NM_INTEGRATED_PHY:
+		line_state = ulpi_read(phy, 0x15);
+		ret = !(line_state & 1);
+		break;
+	case SNPS_28NM_INTEGRATED_PHY:
+		line_state = ulpi_read(phy, 0x87);
+		ret = line_state & 2;
+		break;
+	default:
+		break;
+	}
+	return ret;
+}
+
+static void msm_chg_disable_dcd(struct msm_otg *motg)
+{
+	struct usb_phy *phy = &motg->phy;
+	u32 chg_det;
+
+	switch (motg->pdata->phy_type) {
+	case CI_45NM_INTEGRATED_PHY:
+		chg_det = ulpi_read(phy, 0x34);
+		chg_det &= ~(1 << 5);
+		ulpi_write(phy, chg_det, 0x34);
+		break;
+	case SNPS_28NM_INTEGRATED_PHY:
+		ulpi_write(phy, 0x10, 0x86);
+		break;
+	default:
+		break;
+	}
+}
+
+static void msm_chg_enable_dcd(struct msm_otg *motg)
+{
+	struct usb_phy *phy = &motg->phy;
+	u32 chg_det;
+
+	switch (motg->pdata->phy_type) {
+	case CI_45NM_INTEGRATED_PHY:
+		chg_det = ulpi_read(phy, 0x34);
+		/* Turn on D+ current source */
+		chg_det |= (1 << 5);
+		ulpi_write(phy, chg_det, 0x34);
+		break;
+	case SNPS_28NM_INTEGRATED_PHY:
+		/* Data contact detection enable */
+		ulpi_write(phy, 0x10, 0x85);
+		break;
+	default:
+		break;
+	}
+}
 
 static void msm_chg_block_on(struct msm_otg *motg)
 {
@@ -1854,10 +1790,8 @@ static void msm_chg_block_on(struct msm_otg *motg)
 		udelay(20);
 		break;
 	case SNPS_28NM_INTEGRATED_PHY:
-
 		/* disable DP and DM pull down resistors */
-
-
+		ulpi_write(phy, 0x6, 0xC);
 		/* Clear charger detecting control bits */
 		ulpi_write(phy, 0x1F, 0x86);
 		/* Clear alt interrupt latch and enable bits */
@@ -1916,9 +1850,7 @@ static const char *chg_to_string(enum usb_chg_type chg_type)
 }
 
 #define MSM_CHG_DCD_POLL_TIME		(100 * HZ/1000) /* 100 msec */
-
-#define MSM_CHG_DCD_MAX_RETRIES		15 
-
+#define MSM_CHG_DCD_MAX_RETRIES		6 /* Tdcd_tmout = 6 * 100 msec */
 #define MSM_CHG_PRIMARY_DET_TIME	(50 * HZ/1000) /* TVDPSRC_ON */
 #define MSM_CHG_SECONDARY_DET_TIME	(50 * HZ/1000) /* TVDMSRC_ON */
 static void msm_chg_detect_work(struct work_struct *w)
@@ -1926,21 +1858,14 @@ static void msm_chg_detect_work(struct work_struct *w)
 	struct msm_otg *motg = container_of(w, struct msm_otg, chg_work.work);
 	struct usb_phy *phy = &motg->phy;
 	bool is_dcd = false, tmout, vout, is_aca;
-
-
-
+	u32 line_state, dm_vlgc;
 	unsigned long delay;
 
 	dev_dbg(phy->dev, "chg detection work\n");
 	switch (motg->chg_state) {
 	case USB_CHG_STATE_UNDEFINED:
-		
-		power_supply_usb_detection(true);
-		
 		msm_chg_block_on(motg);
-
-
-
+		msm_chg_enable_dcd(motg);
 		msm_chg_enable_aca_det(motg);
 		motg->chg_state = USB_CHG_STATE_WAIT_FOR_DCD;
 		motg->dcd_retries = 0;
@@ -1960,14 +1885,10 @@ static void msm_chg_detect_work(struct work_struct *w)
 				break;
 			}
 		}
-
-
-
+		is_dcd = msm_chg_check_dcd(motg);
 		tmout = ++motg->dcd_retries == MSM_CHG_DCD_MAX_RETRIES;
 		if (is_dcd || tmout) {
-
-
-
+			msm_chg_disable_dcd(motg);
 			msm_chg_enable_primary_det(motg);
 			delay = MSM_CHG_PRIMARY_DET_TIME;
 			motg->chg_state = USB_CHG_STATE_DCD_DONE;
@@ -1976,75 +1897,41 @@ static void msm_chg_detect_work(struct work_struct *w)
 		}
 		break;
 	case USB_CHG_STATE_DCD_DONE:
-		
-		power_supply_usb_detection(false);
-		
-
-
 		vout = msm_chg_check_primary_det(motg);
-		if (vout) {
+		line_state = readl_relaxed(USB_PORTSC) & PORTSC_LS;
+		dm_vlgc = line_state & PORTSC_LS_DM;
+		if (vout && !dm_vlgc) { /* VDAT_REF < DM < VLGC */
 			if (test_bit(ID_A, &motg->inputs)) {
 				motg->chg_type = USB_ACA_DOCK_CHARGER;
 				motg->chg_state = USB_CHG_STATE_DETECTED;
 				delay = 0;
 				break;
 			}
-			msm_chg_enable_secondary_det(motg);
-			delay = MSM_CHG_SECONDARY_DET_TIME;
-			motg->chg_state = USB_CHG_STATE_PRIMARY_DONE;
-		} else {
+			if (line_state) { /* DP > VLGC */
+				motg->chg_type = USB_PROPRIETARY_CHARGER;
+				motg->chg_state = USB_CHG_STATE_DETECTED;
+				delay = 0;
+			} else {
+				msm_chg_enable_secondary_det(motg);
+				delay = MSM_CHG_SECONDARY_DET_TIME;
+				motg->chg_state = USB_CHG_STATE_PRIMARY_DONE;
+			}
+		} else { /* DM < VDAT_REF || DM > VLGC */
 			if (test_bit(ID_A, &motg->inputs)) {
 				motg->chg_type = USB_ACA_A_CHARGER;
 				motg->chg_state = USB_CHG_STATE_DETECTED;
 				delay = 0;
 				break;
 			}
-			motg->chg_type = USB_SDP_CHARGER;
+
+			if (line_state) /* DP > VLGC or/and DM > VLGC */
+				motg->chg_type = USB_PROPRIETARY_CHARGER;
+			else
+				motg->chg_type = USB_SDP_CHARGER;
+
 			motg->chg_state = USB_CHG_STATE_DETECTED;
 			delay = 0;
-			msm_otg_notify_charger(motg, IDEV_CHG_MIN);
-			USB_NON_STANDARD = 1;
 		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 		break;
 	case USB_CHG_STATE_PRIMARY_DONE:
 		vout = msm_chg_check_secondary_det(motg);
@@ -2152,120 +2039,11 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 	}
 }
 
-
-#if USE_INTR_FROM_VBUS
-int msm_usb_adc_read(void)
-{
-	struct pm8xxx_adc_chan_result result;
-
-	pm8xxx_adc_mpp_config_read(PM8XXX_AMUX_MPP_3,
-							ADC_MPP_1_AMUX6, &result);
-
-	if (result.physical <=	USB_AUDIO_VOLTAGE_MAX && result.physical >= USB_AUDIO_VOLTAGE_MIN) {
-		switch_set_state(&sdev, USB_AUDIO_OUT);
-		printk("\n\n[DEBUG] %s\n\n", __func__);
-		return 1;	
-	}
-	switch_set_state(&sdev, NO_DEVICE);
-	
-	return 0;
-}
-#endif
-
-
-
-static void msm_usb_adc_test_work(struct work_struct *w)
-{
-	struct msm_otg *motg = container_of(w, struct msm_otg, adc_test_work.work);
-
-
-	struct pm8xxx_adc_chan_result result;
-	int rc = -1;
-	 
-	printk("[DEBUG] %s start\n", __func__);
-
-	rc = pm8xxx_adc_mpp_config_read(PM8XXX_AMUX_MPP_3,
-							ADC_MPP_1_AMUX6, &result);
-
-	if (rc) {
-        printk("\n\n[DEBUG] [MSM_OTG] AMUX_MPP_3 %s : rc(%d) \n", __func__, rc);
-    } else {
-        
-        
-        
-	}
-
-
-
-	
-	if((test_bit(B_SESS_VLD, &motg->inputs))){  
-		if (result.physical <=	USB_AUDIO_VOLTAGE_MAX && result.physical >= USB_AUDIO_VOLTAGE_MIN) {
-			gpio_set_value_cansleep(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM), 1);
-			switch_set_state(&sdev, USB_AUDIO_OUT);
-			printk("\n\n[DEBUG] USB_SEL(%d) HIGH set USB audio \n",1);
-		}
-		else{
-			gpio_set_value_cansleep(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM), 0);
-			switch_set_state(&sdev, NO_DEVICE);	
-			printk("\n\n[DEBUG] USB_SEL(%d) HIGH set USB mode \n",1);			
-		}
-	}
-	else {										
-		if (result.physical <=	USB_AUDIO_VOLTAGE_MAX && result.physical >= USB_AUDIO_VOLTAGE_MIN) {
-			gpio_set_value_cansleep(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM), 0);
-			switch_set_state(&sdev, USB_AUDIO_OUT);
-			printk("\n\n[DEBUG] USB_SEL(%d) Low Power Mode set USB Audio \n",0);
-		}
-		else{
-			gpio_set_value_cansleep(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM), 1);
-			switch_set_state(&sdev, NO_DEVICE);	
-			printk("\n\n[DEBUG] USB_SEL(%d) Low Power Mode set USB mode \n",0);
-		}
-	}
-		
-
-
-
-	schedule_delayed_work(&motg->adc_test_work, ADC_TEST_FREQ);
-}
-
-
-int read_file_charger_mode(char* path)
-{
-    int fd;
-
-    fd = sys_open(path, O_RDONLY, 0);
-    if (fd < 0) {
-        return 0;
-    }
-
-    sys_close(fd);
-    return 1;
-}
-
-static void msm_chg_check_work(struct work_struct *w)
-{
-	struct msm_otg *motg = container_of(w, struct msm_otg, chg_check_work.work);
-
-	check_charger_mode = read_file_charger_mode("/data/data/m7.menu.ims/files/usb_charger_off.txt");
-
-	if(check_charger_mode && (motg->chg_type == USB_SDP_CHARGER)){
-        msm_otg_notify_charger(motg,0);
-		pm8921_disable_source_current(false); 
-	}
-	cancel_delayed_work(&motg->chg_check_work);
-}
-
-
 static void msm_otg_sm_work(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg, sm_work);
 	struct usb_otg *otg = motg->phy.otg;
 	bool work = 0, srp_reqd;
-    
-    int wireless_chg_int = gpio_get_value(GPIO_WIRELESS_CHG_INT);
-    int cradle_chg_int = gpio_get_value(GPIO_CRADLE_CHG_INT);
-    
 
 	pm_runtime_resume(otg->phy->dev);
 	pr_debug("%s work\n", otg_state_string(otg->phy->state));
@@ -2293,39 +2071,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 			otg->phy->state = OTG_STATE_A_IDLE;
 			work = 1;
 		} else if (test_bit(B_SESS_VLD, &motg->inputs)) {
-    
-            if(!wireless_chg_int || !cradle_chg_int) {
-                motg->chg_state = USB_CHG_STATE_DETECTED;
-                motg->chg_type = USB_DCP_CHARGER;
-            }
-    
-
-			cancel_delayed_work_sync(&motg->adc_test_work);
-            schedule_delayed_work(&motg->adc_test_work, 0);
-
-#if USE_INTR_FROM_VBUS
-
-			if(msm_usb_adc_read()){
-				cancel_delayed_work_sync(&motg->adc_test_work);			
-                motg->chg_state = USB_CHG_STATE_DETECTED;
-                motg->chg_type = USB_DCP_CHARGER;
-
-				msm_otg_notify_charger(motg,
-						IDEV_CHG_MAX);
-				pm_runtime_put_noidle(otg->dev);
-				pm_runtime_suspend(otg->dev);
-				
-				gpio_set_value_cansleep(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM), 1);
-				printk("\n\n\n[DEBUG] A_LP_SEL_PM %d \n\n\n", gpio_get_value_cansleep(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM)));				
-				
-				return;
-				
-			}else{
-				schedule_delayed_work(&motg->adc_test_work, ADC_TEST_FREQ);
-				gpio_set_value_cansleep(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM), 0);
-			}
-
-#endif
 			pr_debug("b_sess_vld\n");
 			switch (motg->chg_state) {
 			case USB_CHG_STATE_UNDEFINED:
@@ -2338,13 +2083,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 					ulpi_write(otg->phy, 0x2, 0x85);
 					/* fall through */
 				case USB_PROPRIETARY_CHARGER:
-    
-					if(!wireless_chg_int)
-                        msm_otg_notify_charger(motg,IDEV_WIFI_CHG_MAX);
-                    else if(!cradle_chg_int)
-                        msm_otg_notify_charger(motg,IDEV_CRADLE_CHG_MAX);
-    
-                    else
 					msm_otg_notify_charger(motg,
 							IDEV_CHG_MAX);
 					pm_runtime_put_noidle(otg->phy->dev);
@@ -2373,9 +2111,6 @@ static void msm_otg_sm_work(struct work_struct *w)
 						OTG_STATE_B_PERIPHERAL;
 					break;
 				case USB_SDP_CHARGER:
-					
-					pm8921_set_usb_power_supply_type(POWER_SUPPLY_TYPE_USB);
-					
 					msm_otg_start_peripheral(otg, 1);
 					otg->phy->state =
 						OTG_STATE_B_PERIPHERAL;
@@ -3052,24 +2787,18 @@ static void msm_pmic_id_status_w(struct work_struct *w)
 	unsigned long flags;
 
 	local_irq_save(flags);
-
-
-	pr_debug("PMIC: ID set\n");
-	set_bit(ID, &motg->inputs);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	if (irq_read_line(motg->pdata->pmic_id_irq)) {
+		if (!test_and_set_bit(ID, &motg->inputs)) {
+			pr_debug("PMIC: ID set\n");
+			work = 1;
+		}
+	} else {
+		if (test_and_clear_bit(ID, &motg->inputs)) {
+			pr_debug("PMIC: ID clear\n");
+			set_bit(A_BUS_REQ, &motg->inputs);
+			work = 1;
+		}
+	}
 
 	if (work && (motg->phy.state != OTG_STATE_UNDEFINED)) {
 		if (atomic_read(&motg->pm_suspended))
@@ -3509,11 +3238,8 @@ struct msm_otg_platform_data *msm_otg_dt_to_pdata(struct platform_device *pdev)
 				&pdata->default_mode);
 	of_property_read_u32(node, "qcom,hsusb-otg-phy-type",
 				&pdata->phy_type);
-
-
-
-
-
+	of_property_read_u32(node, "qcom,hsusb-otg-pmic-id-irq",
+				&pdata->pmic_id_irq);
 	return pdata;
 }
 
@@ -3710,15 +3436,6 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	INIT_WORK(&motg->sm_work, msm_otg_sm_work);
 	INIT_DELAYED_WORK(&motg->chg_work, msm_chg_detect_work);
 	INIT_DELAYED_WORK(&motg->pmic_id_status_work, msm_pmic_id_status_w);
-
-	INIT_DELAYED_WORK(&motg->adc_test_work, msm_usb_adc_test_work);
-	sdev.name = "usb_audio";
-	if (switch_dev_register(&sdev))
-			kfree(&sdev);
-
-
-  INIT_DELAYED_WORK(&motg->chg_check_work, msm_chg_check_work);
-
 	setup_timer(&motg->id_timer, msm_otg_id_timer_func,
 				(unsigned long) motg);
 	ret = request_irq(motg->irq, msm_otg_irq, IRQF_SHARED,
@@ -3810,20 +3527,6 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 			debug_bus_voting_enabled = true;
 	}
 
-
-	ret = gpio_request(PM8921_GPIO_PM_TO_SYS(A_LP_SEL_PM), "USB_ACC");
-	if (ret) {
-		pr_err("request gpio 36 failed, rc=%d\n", ret);
-			goto free_motg;
-	}
-
-
-
-	schedule_delayed_work(&motg->adc_test_work, ADC_TEST_FREQ);
-
-
-  schedule_delayed_work(&motg->chg_check_work, CHG_CHECK_FREQ);
-
 	return 0;
 
 remove_phy:
@@ -3881,11 +3584,6 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 	msm_otg_debugfs_cleanup();
 	cancel_delayed_work_sync(&motg->chg_work);
 	cancel_delayed_work_sync(&motg->pmic_id_status_work);
-
-	switch_dev_unregister(&sdev);
-	printk("[DEBUG] %s \n",__func__);
-	cancel_delayed_work_sync(&motg->adc_test_work);
-
 	cancel_work_sync(&motg->sm_work);
 
 	pm_runtime_resume(&pdev->dev);
@@ -4015,7 +3713,7 @@ static int msm_otg_pm_resume(struct device *dev)
 
 		if (motg->sm_work_pending) {
 			motg->sm_work_pending = false;
-		queue_work(system_nrt_wq, &motg->sm_work);
+			queue_work(system_nrt_wq, &motg->sm_work);
 		}
 	}
 

@@ -9,10 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/init.h>
 #include <linux/err.h>
@@ -118,7 +114,6 @@ struct voip_drv_info {
 	uint32_t rate_type;
 	uint32_t rate;
 	uint32_t dtx_mode;
-	uint32_t cache_vol;
 
 	uint8_t capture_start;
 	uint8_t playback_start;
@@ -199,9 +194,6 @@ static int msm_voip_volume_put(struct snd_kcontrol *kcontrol,
 
 	pr_debug("%s: volume: %d\n", __func__, volume);
 
-	 voip_info.cache_vol = volume;
-	 
-
 	voc_set_rx_vol_index(voc_get_session_id(VOIP_SESSION_NAME),
 			     RX_PATH,
 			     volume);
@@ -242,7 +234,7 @@ static int msm_voip_dtx_mode_get(struct snd_kcontrol *kcontrol,
 static struct snd_kcontrol_new msm_voip_controls[] = {
 	SOC_SINGLE_EXT("Voip Tx Mute", SND_SOC_NOPM, 0, 1, 0,
 				msm_voip_mute_get, msm_voip_mute_put),
-	SOC_SINGLE_EXT("Voip Rx Volume", SND_SOC_NOPM, 0, 7, 0,
+	SOC_SINGLE_EXT("Voip Rx Volume", SND_SOC_NOPM, 0, 5, 0,
 				msm_voip_volume_get, msm_voip_volume_put),
 	SOC_SINGLE_MULTI_EXT("Voip Mode Rate Config", SND_SOC_NOPM, 0, 23850,
 				0, 2, msm_voip_mode_rate_config_get,
@@ -816,10 +808,6 @@ static int msm_pcm_prepare(struct snd_pcm_substream *substream)
 		voc_register_mvs_cb(voip_process_ul_pkt,
 					voip_process_dl_pkt, prtd);
 		voc_start_voice_call(voc_get_session_id(VOIP_SESSION_NAME));
-		voc_set_rx_vol_index(voc_get_session_id(VOIP_SESSION_NAME),
-			RX_PATH,
-			voip_info.cache_vol);
-		
 
 		prtd->state = VOIP_STARTED;
 	}

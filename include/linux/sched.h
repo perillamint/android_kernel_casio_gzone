@@ -1,8 +1,3 @@
-/**********************************************************************
-* File Name: include/linux/sched.h
-* 
-* (C) NEC CASIO Mobile Communications, Ltd. 2013
-**********************************************************************/
 #ifndef _LINUX_SCHED_H
 #define _LINUX_SCHED_H
 
@@ -295,12 +290,6 @@ static inline void show_state(void)
 }
 
 extern void show_regs(struct pt_regs *);
-
-
-
-extern void show_regs_fatal(struct pt_regs *);
-
-
 
 /*
  * TASK is a pointer to the task whose backtrace we want to see (or NULL for current
@@ -835,15 +824,15 @@ enum cpu_idle_type {
  * when BITS_PER_LONG <= 32 are pretty high and the returns do not justify the
  * increased costs.
  */
-
-
-
-
-
+#if 0 /* BITS_PER_LONG > 32 -- currently broken: it increases power usage under light load  */
+# define SCHED_LOAD_RESOLUTION	10
+# define scale_load(w)		((w) << SCHED_LOAD_RESOLUTION)
+# define scale_load_down(w)	((w) >> SCHED_LOAD_RESOLUTION)
+#else
 # define SCHED_LOAD_RESOLUTION	0
 # define scale_load(w)		(w)
 # define scale_load_down(w)	(w)
-
+#endif
 
 #define SCHED_LOAD_SHIFT	(10 + SCHED_LOAD_RESOLUTION)
 #define SCHED_LOAD_SCALE	(1L << SCHED_LOAD_SHIFT)
@@ -2698,16 +2687,7 @@ static inline void thread_group_cputime_init(struct signal_struct *sig)
 extern void recalc_sigpending_and_wake(struct task_struct *t);
 extern void recalc_sigpending(void);
 
-extern void signal_wake_up_state(struct task_struct *t, unsigned int state);
-
-static inline void signal_wake_up(struct task_struct *t, bool resume)
-{
-	signal_wake_up_state(t, resume ? TASK_WAKEKILL : 0);
-}
-static inline void ptrace_signal_wake_up(struct task_struct *t, bool resume)
-{
-	signal_wake_up_state(t, resume ? __TASK_TRACED : 0);
-}
+extern void signal_wake_up(struct task_struct *t, int resume_stopped);
 
 /*
  * Wrappers for p->thread_info->cpu access. No-op on UP.

@@ -29,10 +29,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -65,12 +61,6 @@ static unsigned long lowmem_deathpending_timeout;
 		if (lowmem_debug_level >= (level))	\
 			printk(x);			\
 	} while (0)
-
-
-#define  LOW_MEM_KILL_SKIP_PROCESS  "droid.apps.maps"  
-                                               
-                                               
-
 
 static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
@@ -138,23 +128,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		}
 		tasksize = get_mm_rss(p->mm);
 		task_unlock(p);
-
-
-        
-		if (strncmp(p->comm, LOW_MEM_KILL_SKIP_PROCESS, strlen(LOW_MEM_KILL_SKIP_PROCESS)) == 0){
-
-
-
-
-
-
-
-
-
-			continue;
-		}
-
-
 		if (tasksize <= 0)
 			continue;
 		if (selected) {

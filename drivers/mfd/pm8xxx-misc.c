@@ -10,10 +10,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #define pr_fmt(fmt) "%s: " fmt, __func__
 
@@ -26,9 +22,6 @@
 #include <linux/delay.h>
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/mfd/pm8xxx/misc.h>
-
-#include <linux/workqueue.h>
-
 
 /* PON CTRL 1 register */
 #define REG_PM8XXX_PON_CTRL_1			0x01C
@@ -158,19 +151,12 @@
 #define REG_HSED_BIAS2_CNTL2		0x138
 #define HSED_EN_MASK			0xC0
 
-
-#define SMPL_DELAY_MS    40*1000
-
-
 struct pm8xxx_misc_chip {
 	struct list_head			link;
 	struct pm8xxx_misc_platform_data	pdata;
 	struct device				*dev;
 	enum pm8xxx_version			version;
 	u64					osc_halt_count;
-	
-	struct delayed_work			smpl_work;
-	
 };
 
 static LIST_HEAD(pm8xxx_misc_chips);
@@ -1166,21 +1152,6 @@ int pm8xxx_hsed_bias_control(enum pm8xxx_hsed_bias bias, bool enable)
 }
 EXPORT_SYMBOL(pm8xxx_hsed_bias_control);
 
-
-static void pm8xxx_smpl_worker(struct work_struct *work)
-{
-	struct delayed_work *dwork = to_delayed_work(work);
-	struct pm8xxx_misc_chip *chip = container_of(dwork,
-				struct pm8xxx_misc_chip, smpl_work);
-	u8 reg = 0;
-
-	pm8xxx_smpl_control(true);
-
-	pm8xxx_readb(chip->dev->parent, REG_PM8921_SLEEP_CTRL, &reg);
-	pr_info("Enable SMPL: addr=0x%x, reg=0x%02x\n", REG_PM8921_SLEEP_CTRL, reg);
-}
-
-
 static int __devinit pm8xxx_misc_probe(struct platform_device *pdev)
 {
 	const struct pm8xxx_misc_platform_data *pdata = pdev->dev.platform_data;
@@ -1231,13 +1202,6 @@ static int __devinit pm8xxx_misc_probe(struct platform_device *pdev)
 	spin_unlock_irqrestore(&pm8xxx_misc_chips_lock, flags);
 
 	platform_set_drvdata(pdev, chip);
-
-	
-	INIT_DELAYED_WORK(&chip->smpl_work, pm8xxx_smpl_worker);
-	schedule_delayed_work(&chip->smpl_work,
-			      msecs_to_jiffies(SMPL_DELAY_MS));
-	pr_debug("pm8xxx_smpl_worker start after %dsec\n", SMPL_DELAY_MS/1000);
-	
 
 	return rc;
 

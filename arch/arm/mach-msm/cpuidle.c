@@ -9,10 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -38,8 +34,8 @@ static struct msm_cpuidle_state msm_cstates[] = {
 	{0, 1, "C1", "RETENTION",
 		MSM_PM_SLEEP_MODE_RETENTION},
 
-
-
+	{0, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
 
 	{0, 3, "C3", "POWER_COLLAPSE",
 		MSM_PM_SLEEP_MODE_POWER_COLLAPSE},
@@ -50,8 +46,8 @@ static struct msm_cpuidle_state msm_cstates[] = {
 	{1, 1, "C1", "RETENTION",
 		MSM_PM_SLEEP_MODE_RETENTION},
 
-
-
+	{1, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
 
 	{2, 0, "C0", "WFI",
 		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
@@ -59,8 +55,8 @@ static struct msm_cpuidle_state msm_cstates[] = {
 	{2, 1, "C1", "RETENTION",
 		MSM_PM_SLEEP_MODE_RETENTION},
 
-
-
+	{2, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
 
 	{3, 0, "C0", "WFI",
 		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
@@ -68,8 +64,8 @@ static struct msm_cpuidle_state msm_cstates[] = {
 	{3, 1, "C1", "RETENTION",
 		MSM_PM_SLEEP_MODE_RETENTION},
 
-
-
+	{3, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
 };
 
 

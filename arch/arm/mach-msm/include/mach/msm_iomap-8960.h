@@ -19,10 +19,6 @@
  * provide a master phys->virt mapping for peripherals here.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #ifndef __ASM_ARCH_MSM_IOMAP_8960_H
 #define __ASM_ARCH_MSM_IOMAP_8960_H
@@ -101,14 +97,6 @@
 
 #define MSM8960_HDMI_PHYS		0x04A00000
 #define MSM8960_HDMI_SIZE		SZ_4K
-
-
-#define MSM_MMSS_CLK_CTL_PHYS	0x04000000
-#define MSM_MMSS_CLK_CTL_SIZE	SZ_4K
-
-#define MSM_TCSR_PHYS	0x1A400000
-#define MSM_TCSR_SIZE	SZ_4K
-
 
 #ifdef CONFIG_DEBUG_MSM8960_UART
 #define MSM_DEBUG_UART_BASE		IOMEM(0xFA740000)

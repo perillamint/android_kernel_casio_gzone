@@ -10,10 +10,6 @@
  * GNU General Public License for more details.
  *
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -34,22 +30,10 @@
 #include <mach/gpio.h>
 #include <mach/clk.h>
 
-#include <mach/board_gg3.h>
-
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mdp.h"
 #include "mdp4.h"
-
-
-#include "mipi_lg4573b.h"
-
-
-#define PM8921_GPIO_BASE		NR_GPIO_IRQS
-#define PM8921_GPIO_PM_TO_SYS(pm_gpio)	(pm_gpio - 1 + PM8921_GPIO_BASE)
-
-
-#define MIPI_DSI_NEXT_DEV_MDP_ID  0x80201
 
 u32 dsi_irq;
 u32 esc_byte_ratio;
@@ -139,12 +123,7 @@ static int mipi_dsi_off(struct platform_device *pdev)
 
 	mipi_dsi_unprepare_clocks();
 	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-
-
-
-
-	mipi_lg4573b_reg_ctrl(0);
-
+		mipi_dsi_pdata->dsi_power_save(0);
 
 	if (mdp_rev >= MDP_REV_41)
 		mutex_unlock(&mfd->dma->ov_mutex);
@@ -170,7 +149,7 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	u32 dummy_xres, dummy_yres;
 	int target_type = 0;
 
-	pr_debug("Start of %s:....\n", __func__);
+	pr_debug("%s+:\n", __func__);
 
 	mfd = platform_get_drvdata(pdev);
 	fbi = mfd->fbi;
@@ -179,13 +158,7 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	esc_byte_ratio = pinfo->mipi.esc_byte_ratio;
 
 	if (mipi_dsi_pdata && mipi_dsi_pdata->dsi_power_save)
-
-
-
-
-	mipi_lg4573b_reg_ctrl(1);
-
-
+		mipi_dsi_pdata->dsi_power_save(1);
 
 	cont_splash_clk_ctrl(0);
 	mipi_dsi_prepare_clocks();
@@ -195,15 +168,7 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	clk_rate = mfd->fbi->var.pixclock;
 	clk_rate = min(clk_rate, mfd->panel_info.clk_max);
 
-
- if(system_state == SYSTEM_BOOTING) {
-	mipi_dsi_phy_ctrl(0);
-	mdelay(1);
 	mipi_dsi_phy_ctrl(1);
- } else {
-	mipi_dsi_phy_ctrl(1);
- }
-
 
 	if (mdp_rev == MDP_REV_42 && mipi_dsi_pdata)
 		target_type = mipi_dsi_pdata->target_type;

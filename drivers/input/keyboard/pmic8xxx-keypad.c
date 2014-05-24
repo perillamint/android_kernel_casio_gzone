@@ -9,10 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/platform_device.h>
@@ -113,10 +109,6 @@ struct pmic8xxx_kp {
 
 	u8 ctrl_reg;
 };
-
-
-u8 pm8xxx_tactickle_key_to_touch = 0;
-
 
 static int pmic8xxx_kp_write_u8(struct pmic8xxx_kp *kp,
 				 u8 data, u16 reg)
@@ -283,13 +275,9 @@ static void __pmic8xxx_kp_scan_matrix(struct pmic8xxx_kp *kp, u16 *new_state,
 			if (!(bits_changed & (1 << col)))
 				continue;
 
-
-
-
-
-			
-			if(!col && !row) pm8xxx_tactickle_key_to_touch = 1;
-			
+			dev_dbg(kp->dev, "key [%d:%d] %s\n", row, col,
+					!(new_state[row] & (1 << col)) ?
+					"pressed" : "released");
 
 			code = MATRIX_SCAN_CODE(row, col, PM8XXX_ROW_SHIFT);
 

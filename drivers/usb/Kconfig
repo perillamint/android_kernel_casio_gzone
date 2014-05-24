@@ -1,8 +1,3 @@
-#/**********************************************************************
-#* File Name: drivers/usb/Kconfig
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 #
 # USB device configuration
 #
@@ -32,10 +27,7 @@ config USB_ARCH_HAS_OHCI
 	default y if MIPS_ALCHEMY
 	default y if MACH_JZ4740
 	# more:
-
-
-
-
+	default PCI
 
 # some non-PCI hcds implement EHCI
 config USB_ARCH_HAS_EHCI
@@ -51,23 +43,18 @@ config USB_ARCH_HAS_EHCI
 	default y if ARCH_VT8500
 	default y if PLAT_SPEAR
 	default y if PLAT_S5P
-
+	default y if ARCH_MSM
 	default y if MICROBLAZE
 	default y if SPARC_LEON
 	default y if ARCH_MMP
 	default y if MACH_LOONGSON1
-
-
-
+	default PCI
 
 # some non-PCI HCDs implement xHCI
 config USB_ARCH_HAS_XHCI
 	boolean
 	default y if ARCH_MSM8974
-
-
-
-
+	default PCI
 
 menuconfig USB_SUPPORT
 	bool "USB support"
@@ -96,10 +83,7 @@ config USB_ARCH_HAS_HCD
 	default y if ARM				# SL-811
 	default y if BLACKFIN				# SL-811
 	default y if SUPERH				# r8a66597-hcd
-
-
-
-
+	default PCI
 
 # ARM SA1111 chips have a non-PCI based "OHCI-compatible" USB host interface.
 config USB

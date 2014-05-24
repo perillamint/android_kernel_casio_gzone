@@ -1,8 +1,3 @@
-#/**********************************************************************
-#* File Name: sound/soc/msm/Makefile
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 # MSM CPU/CODEC DAI Support
 snd-soc-msm-dai-objs := msm-dai.o
 obj-$(CONFIG_SND_MSM_DAI_SOC) += snd-soc-msm-dai.o
@@ -67,8 +62,7 @@ obj-$(CONFIG_SND_SOC_VOICE) += msm-pcm-voice.o msm-pcm-voip.o
 snd-soc-qdsp6-objs += msm-pcm-lpa.o msm-pcm-afe.o
 obj-$(CONFIG_SND_SOC_QDSP6) += snd-soc-qdsp6.o
 
-
-snd-soc-msm8960-objs := msm8960.o
+snd-soc-msm8960-objs := msm8960.o apq8064.o msm8930.o mpq8064.o
 obj-$(CONFIG_SND_SOC_MSM8960) += snd-soc-msm8960.o
 
 # Generic MSM drivers

@@ -1,8 +1,3 @@
-#/**********************************************************************
-#* File Name: drivers/media/video/msm/sensors/Makefile
-#* 
-#* (C) NEC CASIO Mobile Communications, Ltd. 2013
-#**********************************************************************/
 GCC_VERSION      := $(shell $(CONFIG_SHELL) $(PWD)/scripts/gcc-version.sh $(CROSS_COMPILE)gcc)
 EXTRA_CFLAGS += -Idrivers/media/video/msm
 EXTRA_CFLAGS += -Idrivers/media/video/msm/io
@@ -21,4 +16,3 @@ obj-$(CONFIG_MT9E013) += mt9e013_v4l2.o
 obj-$(CONFIG_WEBCAM_OV9726) += ov9726_v4l2.o
 obj-$(CONFIG_OV7692) += ov7692_v4l2.o
 obj-$(CONFIG_VX6953) += vx6953.o
-obj-$(CONFIG_MT9M113) += mt9m113_v4l2.o

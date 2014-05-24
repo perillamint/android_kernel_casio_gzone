@@ -9,10 +9,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-/***********************************************************************/
-/* Modified by                                                         */
-/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
-/***********************************************************************/
 #include <sound/soc.h>
 #include <sound/jack.h>
 #include <linux/mfd/wcd9xxx/wcd9xxx-slimslave.h>
@@ -28,7 +24,7 @@
 #define DEFAULT_DCE_STA_WAIT 55
 #define DEFAULT_DCE_WAIT 60000
 #define DEFAULT_STA_WAIT 5000
-#define VDDIO_MICBIAS_MV 2700	
+#define VDDIO_MICBIAS_MV 1800
 
 #define STA 0
 #define DCE 1
