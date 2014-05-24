@@ -12,6 +12,10 @@
  *  'linux/arch/arm/lib/traps.S'.  Mostly a debugging aid, but will probably
  *  kill the offending process.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 #include <linux/signal.h>
 #include <linux/personality.h>
 #include <linux/kallsyms.h>
@@ -39,6 +43,11 @@
 
 static const char *handler[]= { "prefetch abort", "data abort", "address exception", "interrupt" };
 
+
+static int first_call_chain = 0;
+static int first_die = 1;
+
+
 void *vectors_page;
 
 #ifdef CONFIG_DEBUG_USER
@@ -57,7 +66,16 @@ static void dump_mem(const char *, const char *, unsigned long, unsigned long);
 void dump_backtrace_entry(unsigned long where, unsigned long from, unsigned long frame)
 {
 #ifdef CONFIG_KALLSYMS
+
+
+	if(first_call_chain)
+		set_kernel_panic_log(1);
+
 	printk("[<%08lx>] (%pS) from [<%08lx>] (%pS)\n", where, (void *)where, from, (void *)from);
+
+	set_kernel_panic_log(0);
+
+
 #else
 	printk("Function entered at [<%08lx>] from [<%08lx>]\n", where, from);
 #endif
@@ -239,8 +257,20 @@ static int __die(const char *str, int err, struct thread_info *thread, struct pt
 	static int die_counter;
 	int ret;
 
+
+	if(first_die) {
+		first_call_chain = 1;
+		first_die = 0;
+	}
+	set_kernel_panic_log(1);
+	set_kernel_panic_magic_num();
+
 	printk(KERN_EMERG "Internal error: %s: %x [#%d]" S_PREEMPT S_SMP
 	       S_ISA "\n", str, err, ++die_counter);
+
+
+	set_kernel_panic_log(0);
+
 
 	/* trap and error numbers are mostly meaningless on ARM */
 	ret = notify_die(DIE_OOPS, str, regs, err, tsk->thread.trap_no, SIGSEGV);
@@ -248,7 +278,13 @@ static int __die(const char *str, int err, struct thread_info *thread, struct pt
 		return ret;
 
 	print_modules();
-	__show_regs(regs);
+	
+
+	__show_regs_fatal(regs);
+
+
+
+	
 	printk(KERN_EMERG "Process %.*s (pid: %d, stack limit = 0x%p)\n",
 		TASK_COMM_LEN, tsk->comm, task_pid_nr(tsk), thread + 1);
 
@@ -257,6 +293,12 @@ static int __die(const char *str, int err, struct thread_info *thread, struct pt
 			 THREAD_SIZE + (unsigned long)task_stack_page(tsk));
 		dump_backtrace(regs, tsk);
 		dump_instr(KERN_EMERG, regs);
+
+
+
+		first_call_chain = 0;
+
+
 	}
 
 	return ret;

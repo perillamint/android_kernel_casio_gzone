@@ -12,6 +12,10 @@
  *
  * Qualcomm's PM8921/PM8018 ADC Arbiter driver
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 #define pr_fmt(fmt) "%s: " fmt, __func__
 
 #include <linux/kernel.h>
@@ -1032,6 +1036,247 @@ uint32_t pm8xxx_adc_btm_end(void)
 }
 EXPORT_SYMBOL_GPL(pm8xxx_adc_btm_end);
 
+
+
+static const struct pm8xxx_adc_map_pt adcmap_temp_sens[] = {
+  {  63,  -40},
+  {  66,  -39},
+  {  70,  -38},
+  {  74,  -37},
+  {  78,  -36},
+  {  82,  -35},
+  {  87,  -34},
+  {  91,  -33},
+  {  96,  -32},
+  {	101,  -31},
+	{	107,	-30},
+	{	112,	-29},
+	{	118,	-28},
+	{	124,	-27},
+	{	130,	-26},
+	{	136,	-25},
+	{	143,	-24},
+	{	150,	-23},
+	{	157,	-22},
+	{	164,	-21},
+	{	172,	-20},
+	{	179,	-19},
+	{	188,	-18},
+	{	196,	-17},
+	{	205,	-16},
+	{	214,	-15},
+	{	223,	-14},
+	{	232,	-13},
+	{	242,	-12},
+	{	252,	-11},
+	{	262,	-10},
+	{	273,	-9},
+	{	284,	-8},
+	{	295,	-7},
+	{	306,	-6},
+	{	318,	-5},
+	{	330,	-4},
+	{	342,	-3},
+	{	355,	-2},
+	{	367,	-1},
+	{	380,	 0},
+	{	394,	 1},
+	{	407,	 2},
+	{	421,	 3},
+	{	435,	 4},
+	{	449,	 5},
+	{	463,	 6},
+	{	478,	 7},
+	{	493,	 8},
+	{	508,	 9},
+	{	523,	10},
+	{	538,	11},
+	{	554,	12},
+	{	569,	13},
+	{	585,	14},
+	{	601,	15},
+	{	617,	16},
+	{	633,	17},
+	{	649,	18},
+	{	665,	19},
+	{	682,	20},
+	{	698,	21},
+	{	714,	22},
+	{	731,	23},
+	{	747,	24},
+	{	764,	25},
+	{	780,	26},
+	{	797,	27},
+	{	813,	28},
+	{	829,	29},
+	{	845,	30},
+	{	862,	31},
+	{	878,	32},
+	{	894,	33},
+	{	910,	34},
+	{	925,	35},
+	{	941,	36},
+	{	957,	37},
+	{	972,	38},
+	{	988,	39},
+	{1003,	40},
+	{1018,	41},
+	{1033,	42},
+	{1047,	43},
+	{1062,	44},
+	{1076,	45},
+	{1091,	46},
+	{1105,	47},
+	{1119,	48},
+	{1132,	49},
+	{1146,	50},
+	{1159,	51},
+	{1172,	52},
+	{1185,	53},
+	{1198,	54},
+	{1210,	55},
+	{1223,	56},
+	{1235,	57},
+	{1247,	58},
+	{1258,	59},
+	{1270,	60}, 
+  {1281,  61},
+  {1292,  62},
+  {1303,  63},
+  {1313,  64},
+  {1324,  65},
+  {1334,  66},
+  {1344,  67},
+  {1354,  68},
+  {1364,  69},
+  {1373,  70}
+};
+
+static int32_t pm8xxx_adc_map_linear(const struct pm8xxx_adc_map_pt *pts,
+		uint32_t tablesize, int32_t input, int64_t *output)
+{
+	bool descending = 1;
+	uint32_t i = 0;
+
+	if ((pts == NULL) || (output == NULL))
+		return -EINVAL;
+
+	
+	if (tablesize > 1) {
+		if (pts[0].x < pts[1].x)
+			descending = 0;
+	}
+
+	while (i < tablesize) {
+		if ((descending == 1) && (pts[i].x < input)) {
+			
+
+			break;
+		} else if ((descending == 0) &&
+				(pts[i].x > input)) {
+			
+
+			break;
+		} else {
+			i++;
+		}
+	}
+
+	if (i == 0)
+		*output = pts[0].y;
+	else if (i == tablesize)
+		*output = pts[tablesize-1].y;
+	else 
+  {
+		
+		
+
+    
+
+    *output = (((int32_t) (((pts[i].y - pts[i-1].y)*
+              (input - pts[i-1].x))*10)/(pts[i].x - pts[i-1].x))+(pts[i-1].y*10));
+    
+
+
+
+
+	}
+	return 0;
+}
+
+static ssize_t pm8xxx_temp_sens_show(struct device *dev,
+			struct device_attribute *devattr, char *buf)
+{
+	
+	
+	struct pm8xxx_adc_chan_result result;
+	int rc = -1;
+	int32_t temp_voltage = 0;
+
+	
+	
+
+		rc = pm8xxx_adc_mpp_config_read(PM8XXX_AMUX_MPP_4,
+			ADC_MPP_1_AMUX6, &result);
+
+	if (rc)
+		return 0;
+
+	temp_voltage = (int32_t)result.physical/1000;
+  
+	
+	pm8xxx_adc_map_linear(
+                  			adcmap_temp_sens,
+                  			ARRAY_SIZE(adcmap_temp_sens),
+                  			temp_voltage,
+                  			&result.physical
+                  			);
+	return snprintf(buf, PM8XXX_ADC_HWMON_NAME_LENGTH,
+		"%lld\n", result.physical);
+}
+
+static ssize_t pm8xxx_hw_id_show(struct device *dev,
+			struct device_attribute *devattr, char *buf)
+{
+	
+	
+	struct pm8xxx_adc_chan_result result;
+	int rc = -1;
+
+	
+	
+
+		rc = pm8xxx_adc_mpp_config_read(PM8XXX_AMUX_MPP_7,
+			ADC_MPP_1_AMUX6, &result);
+
+	if (rc)
+		return 0;
+
+	return snprintf(buf, PM8XXX_ADC_HWMON_NAME_LENGTH,
+		"Result:%lld Raw:%d\n", result.physical, result.adc_code);
+}
+
+
+static ssize_t pm8xxx_xo_therm_show(struct device *dev,
+			struct device_attribute *devattr, char *buf)
+{
+    struct pm8xxx_adc_chan_result result;
+    int rc = -1;
+    
+    rc = pm8xxx_adc_mpp_config_read(PM8XXX_AMUX_MPP_3,
+                                    CHANNEL_MUXOFF, &result);
+
+  
+  printk("jason.ku physical = %lld\n", result.physical);
+    if (rc)
+      return 0;
+  
+  return snprintf(buf, PM8XXX_ADC_HWMON_NAME_LENGTH,
+    "%lld\n", result.physical);
+}
+
+
+
 static ssize_t pm8xxx_adc_show(struct device *dev,
 			struct device_attribute *devattr, char *buf)
 {
@@ -1044,8 +1289,13 @@ static ssize_t pm8xxx_adc_show(struct device *dev,
 	if (rc)
 		return 0;
 
+
 	return snprintf(buf, PM8XXX_ADC_HWMON_NAME_LENGTH,
-		"Result:%lld Raw:%d\n", result.physical, result.adc_code);
+		"%lld\n", result.physical);
+
+
+
+
 }
 
 static int get_adc(void *data, u64 *val)
@@ -1086,6 +1336,20 @@ static inline void create_debugfs_entries(void)
 {
 }
 #endif
+
+
+
+static struct sensor_device_attribute pm8xxx_sens_attr =
+	SENSOR_ATTR(temp_sens, S_IRUGO, pm8xxx_temp_sens_show, NULL, ADC_MPP_1_AMUX6);
+static struct sensor_device_attribute pm8xxx_hwid_attr =
+	SENSOR_ATTR(hw_id, S_IRUGO, pm8xxx_hw_id_show, NULL, ADC_MPP_1_AMUX6);
+
+
+static struct sensor_device_attribute pm8xxx_xo_therm_attr = 
+	SENSOR_ATTR(xo_therm, S_IRUGO, pm8xxx_xo_therm_show, NULL, CHANNEL_MUXOFF);
+
+
+
 static struct sensor_device_attribute pm8xxx_adc_attr =
 	SENSOR_ATTR(NULL, S_IRUGO, pm8xxx_adc_show, NULL, 0);
 
@@ -1116,6 +1380,45 @@ static int32_t pm8xxx_adc_init_hwmon(struct platform_device *pdev)
 		}
 	}
 
+
+
+	memcpy(&adc_pmic->sens_attr[i], &pm8xxx_sens_attr,
+			sizeof(pm8xxx_sens_attr));
+	rc = device_create_file(&pdev->dev,
+			&adc_pmic->sens_attr[i].dev_attr);
+	if (rc) {
+		dev_err(&pdev->dev, "device_create_file failed for "
+				"dev %s\n",
+				adc_pmic->adc_channel[i].name);
+		goto hwmon_err_sens;
+	}
+	
+	memcpy(&adc_pmic->sens_attr[i+1], &pm8xxx_hwid_attr,
+			sizeof(pm8xxx_hwid_attr));
+	rc = device_create_file(&pdev->dev,
+			&adc_pmic->sens_attr[i+1].dev_attr);
+	if (rc) {
+		dev_err(&pdev->dev, "device_create_file failed for "
+				"dev %s\n",
+				adc_pmic->adc_channel[i+1].name);
+		goto hwmon_err_sens;
+	}
+
+
+  memcpy(&adc_pmic->sens_attr[i+2], &pm8xxx_xo_therm_attr,
+          sizeof(pm8xxx_xo_therm_attr));
+  rc = device_create_file(&pdev->dev,
+      &adc_pmic->sens_attr[i+2].dev_attr);
+  if (rc) {
+    dev_err(&pdev->dev, "device_create_file failed for "
+        "dev %s\n",
+        adc_pmic->adc_channel[i+2].name);
+    goto hwmon_err_sens;
+  }
+
+  
+
+	
 	return 0;
 hwmon_err_sens:
 	pr_info("Init HWMON failed for pm8xxx_adc with %d\n", rc);

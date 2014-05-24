@@ -10,6 +10,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #ifndef _WCNSS_WLAN_H_
 #define _WCNSS_WLAN_H_
@@ -52,5 +56,8 @@ int wcnss_prealloc_put(void *ptr);
 
 #define wcnss_wlan_get_drvdata(dev) dev_get_drvdata(dev)
 #define wcnss_wlan_set_drvdata(dev, data) dev_set_drvdata((dev), (data))
+
+
+int get_wcnss_diag(void);
 
 #endif /* _WCNSS_WLAN_H_ */

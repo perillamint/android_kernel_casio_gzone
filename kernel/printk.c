@@ -15,6 +15,10 @@
  * Rewrote bits to get rid of console_lock
  *	01Mar01 Andrew Morton
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/kernel.h>
 #include <linux/mm.h>
@@ -48,6 +52,32 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/printk.h>
 
+
+
+#include <linux/fs.h>
+#include <linux/slab.h>
+#include <linux/namei.h>
+#include <linux/time.h>
+#include <linux/wait.h>
+#include <linux/kthread.h>
+#include <linux/sched.h>
+#include <asm/processor.h>
+#include <asm/atomic.h>
+
+
+
+
+
+static void ktrace_printk(const char *fmt, va_list args);
+
+
+
+
+#define REMOVE_LOG
+
+#if defined(REMOVE_LOG)
+extern int remove_log_flag;
+#endif
 /*
  * Architectures can override it:
  */
@@ -555,6 +585,218 @@ void kdb_syslog_data(char *syslog_data[4])
 }
 #endif	/* CONFIG_KGDB_KDB */
 
+
+
+
+
+
+
+int DVE022_syslog(char *buf, int len)
+{
+	unsigned i, j, limit, count;
+	int error = 0;
+
+	error = -EINVAL;
+	if (!buf || len < 0)
+		goto out;
+	error = 0;
+	if (!len)
+		goto out;
+
+	
+	
+	
+
+	count = len;
+	if (count > log_buf_len)
+		count = log_buf_len;
+	raw_spin_lock_irq(&logbuf_lock);
+	if (count > logged_chars)
+		count = logged_chars;
+
+	
+	limit = log_end;
+	for (i = 0; i < count ; i++) {
+		j = limit-1-i;
+		
+		if (j + log_buf_len < log_end)
+			break;
+		buf[count-1-i] = LOG_BUF(j);
+	}
+	raw_spin_unlock_irq(&logbuf_lock);
+
+	error = i;	
+
+	
+	if(count < len)
+	{
+		for (i = count; i < len; i++)
+			buf[i]=0;
+	}
+
+out:
+	return error;
+}
+EXPORT_SYMBOL(DVE022_syslog);
+
+#define NUM_OF_KEYWORDS (2)
+static char key[NUM_OF_KEYWORDS][9]={
+		"LR is at",
+		"PC is at"
+};
+#define	SEARCH_LIMIT 0x8000
+
+static char bug_key[]= {"(__bug+0x"};
+
+#define	LINE_TOP_SIZE 31
+
+int DVE022_pullout_pc(char *buf, int len)
+{
+	unsigned i, j, limit, count, bufindex, offset=0;
+	int k,error = 0;
+
+    int b_cnt=0, w_cnt=0;
+	
+	
+
+	error = -EINVAL;
+	if (!buf || len < 0)
+		goto out;
+	error = 0;
+	if (!len)
+		goto out;
+
+	
+	
+	
+
+	count = len;
+	if (count > log_buf_len)
+		count = log_buf_len;
+
+	limit = SEARCH_LIMIT;
+	if (limit > log_buf_len)
+		limit = log_buf_len;
+
+	raw_spin_lock_irq(&logbuf_lock);
+	if (count > logged_chars)
+		count = logged_chars;
+
+	if (limit > logged_chars)
+		limit = logged_chars;
+
+	
+
+	
+	
+	
+	j=log_end-1;
+	bufindex=0;
+
+	for(i=0;i<NUM_OF_KEYWORDS;i++)
+	{
+		k=strlen(key[i])-1;
+		for( ;j + limit >= log_end;j--)
+		{
+			
+			if(LOG_BUF(j)==key[i][k])
+			{
+				
+				k--;
+				if(k<0)
+				{
+					
+					
+					for(offset=0;bufindex+offset<count;offset++)
+					{
+						
+						buf[bufindex+offset] = LOG_BUF(j+offset);
+						if(LOG_BUF(j+offset)=='\n')
+						{
+							break;
+						}
+					}
+					break;
+				}
+			}else{
+				
+				k=strlen(key[i])-1;
+			}
+		}
+		bufindex=bufindex+offset+1;
+	}
+
+	
+	
+	
+	k = strlen(bug_key)-1;	
+	j = log_end-1;			
+	offset = 0;				
+	b_cnt = 0;				
+	len = len - bufindex;	
+
+	
+	for( ; j + limit >= log_end; j--, b_cnt++ )
+	{
+		
+		if(LOG_BUF(j)==bug_key[k])
+		{
+			
+			k--;
+
+			if( k < 0 )	
+			{
+				j = j - LINE_TOP_SIZE;	
+
+				
+				
+				
+				
+				b_cnt = b_cnt + LINE_TOP_SIZE;
+
+				
+				if( b_cnt < len )
+				{
+					
+					w_cnt = b_cnt;
+				}
+				else 
+				
+				
+				{
+					
+					w_cnt = len;
+				}
+
+				
+				if( 1 <= w_cnt )
+				{
+					
+					for( offset=0; offset<w_cnt; offset++ )
+					{
+						buf[ bufindex + offset ] = LOG_BUF( j + offset );
+					}
+				}
+				break;
+			}
+		}else{
+			
+			k = strlen( bug_key ) - 1;
+		}
+	}
+	
+	bufindex = bufindex + offset; 
+
+	raw_spin_unlock_irq(&logbuf_lock);
+
+	error = bufindex;	
+
+out:
+	return error;
+}
+EXPORT_SYMBOL(DVE022_pullout_pc);
+
+
 /*
  * Call the console drivers on a range of log_buf
  */
@@ -680,6 +922,14 @@ static void call_console_drivers(unsigned start, unsigned end)
 	unsigned cur_index, start_print;
 	static int msg_level = -1;
 
+#if defined(REMOVE_LOG)
+	if(1 == remove_log_flag)
+	{
+		if(msg_level == -1) return;
+		if(msg_level != -1) return;
+	}
+#endif
+
 	BUG_ON(((int)(start - end)) > 0);
 
 	cur_index = start;
@@ -796,11 +1046,26 @@ asmlinkage int printk(const char *fmt, ...)
 {
 	va_list args;
 	int r;
+
+#if defined(REMOVE_LOG)
+	int i = 0;
+#endif
+
 #ifdef CONFIG_MSM_RTB
 	void *caller = __builtin_return_address(0);
+#endif
+
+#if defined(REMOVE_LOG)
+	if(1 == remove_log_flag)
+	{
+		if(i == 0) return 0;
+		if(i != 0) return 0;
+	}
+#endif
+
 
 	uncached_logk_pc(LOGK_LOGBUF, caller, (void *)log_end);
-#endif
+
 
 #ifdef CONFIG_KGDB_KDB
 	if (unlikely(kdb_trap_printk)) {
@@ -899,6 +1164,22 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 	size_t plen;
 	char special;
 
+
+
+	va_list ktrace_args;
+
+	ktrace_args = args;
+
+
+
+#if defined(REMOVE_LOG)
+	if(1 == remove_log_flag)
+	{
+		if(printed_len == 0) return 0;
+		if(printed_len != 0) return 0;
+	}
+#endif
+
 	boot_delay_msec();
 	printk_delay();
 
@@ -940,6 +1221,10 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 
 	p = printk_buf;
 
+
+	save_kernel_panic_log(p);
+
+
 	/* Read log level and handle special printk prefix */
 	plen = log_prefix(p, &current_log_level, &special);
 	if (plen) {
@@ -958,6 +1243,10 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 			}
 		}
 	}
+
+
+	ktrace_printk(fmt, ktrace_args);
+
 
 	/*
 	 * Copy the output into log_buf. If the caller didn't provide
@@ -1352,6 +1641,9 @@ void console_unlock(void)
 	console_may_schedule = 0;
 
 again:
+
+    retry = 0;
+
 	for ( ; ; ) {
 		raw_spin_lock_irqsave(&logbuf_lock, flags);
 		wake_klogd |= log_start - log_end;
@@ -1875,4 +2167,892 @@ void kmsg_dump(enum kmsg_dump_reason reason)
 		dumper->dump(dumper, reason, s1, l1, s2, l2);
 	rcu_read_unlock();
 }
+
+
+
+
+
+
+
+
+static void ktrace_ctl(const char *fmt, va_list args);
+static void ktrace_set_time(char *input_str, char *output_str, int size);
+static bool ktrace_write_msg(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define KTRACE_DBGLOG(fmt, ...)
+
+
+
+
+
+#define KTRACE_IGNORE
+
+#if defined(KTRACE_IGNORE)
+#define KTRACE_IGNORE_MSG		"<3>msm_hsusb msm_hsusb: usb_ept_queue_xfer: cannot queue as bus is suspended ept #5 out max:512 head:ff024280 bit:5\n"
+static bool g_ktrace_ignore = false;
+#endif	
+
+
+
+
+#define KTRACE_BUF_SIZE			(64 * 1024)							
+#define KTRACE_IDX_SIZE			1								
+
+							
+
+
+#define KTRACE_SYSHALTED		"<0>System halted."				
+#define KTRACE_POWERDOWN		"<0>Power down."				
+#define KTRACE_EVENT0x90 		"[T][ARM]Event:0x90 "			
+
+
+#define KTRACE_FORCEKMSG 		"[T][ARM]Event:0xFF "			
+
+
+#define KTRACE_EVENT0x38 		"[T][ARM]Event:0x38 "			
+#define KTRACE_SYSTEMCLOCK		"setting system clock to"		
+
+#define KTRACE_RAW_SPIN_LOCK	"longer affine to cpu"			
+
+
+
+
+
+#define ARMLOG_MSG_STR			"[T][ARM]"						
+#define ARMLOG_MSG_EVENT_STR    "Event:0x"
+#define ARMLOG_MSG_INFO_STR     "Info:0x"
+#define ARMLOG_MSG_ACCEPT_STR	"0123456789abcdefABCDEF"
+#define ARMLOG_MSG_SIZE			64								
+
+#define ARMLOG_VALUE_AREA_SIZE	2								
+#define ARMLOG_INFO_AREA_SIZE	16								
+
+
+
+#define	ARMLOG_MSG_BUF_SIZE		(ARMLOG_VALUE_AREA_SIZE + ARMLOG_INFO_AREA_SIZE + 1)
+#define	ARMLOG_MSG_BUF_NUM		50								
+
+
+#define KTRACE_MSG_SIZE			1024
+
+
+
+
+volatile bool			g_ktrace_initialized  = false;			
+volatile bool			g_ktrace_error		  = false;			
+
+atomic_t				g_ktrace_full		  = ATOMIC_INIT(0);	
+char					*g_ktrace_full_buf	  = NULL;			
+volatile int			g_ktrace_full_buf_len = 0;				
+
+wait_queue_head_t		g_ktrace_signal_wait;					
+
+
+
+
+
+
+
+
+char					g_armlog_issue_buf[ARMLOG_MSG_BUF_NUM][ARMLOG_MSG_BUF_SIZE];	
+atomic_t				g_armlog_issue_ReadPos = ATOMIC_INIT(0);	
+atomic_t				g_armlog_issue_WritePos = ATOMIC_INIT(0);	
+atomic_t				g_armlog_issue_DataCount = ATOMIC_INIT(0);	
+
+
+
+EXPORT_SYMBOL(g_ktrace_initialized);
+EXPORT_SYMBOL(g_ktrace_error);
+EXPORT_SYMBOL(g_ktrace_full);
+EXPORT_SYMBOL(g_ktrace_full_buf);
+EXPORT_SYMBOL(g_ktrace_full_buf_len);
+EXPORT_SYMBOL(g_ktrace_signal_wait);
+
+
+
+
+
+
+
+EXPORT_SYMBOL(g_armlog_issue_buf);
+EXPORT_SYMBOL(g_armlog_issue_ReadPos);
+EXPORT_SYMBOL(g_armlog_issue_WritePos);
+EXPORT_SYMBOL(g_armlog_issue_DataCount);
+
+
+
+
+
+
+static volatile bool	g_ktrace_busy         = false;			
+static volatile bool	g_ktrace_reentry      = false;			
+static volatile bool	g_ktrace_end_insmod   = false;			
+static volatile bool	g_ktrace_clock        = false;			
+
+static char				g_ktrace_buf[2][KTRACE_BUF_SIZE];			
+static volatile int		g_ktrace_buf_len	  = 0;				
+static volatile int		g_ktrace_buf_idx	  = 0;				
+
+static char				g_ktrace_msg[KTRACE_MSG_SIZE];			
+static char				g_printk_msg[KTRACE_MSG_SIZE];			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void ktrace_printk(const char *fmt, va_list args)
+{
+	
+
+	if (g_ktrace_busy) {
+		g_ktrace_reentry = true;
+		return;
+	}
+
+	
+	g_ktrace_busy = true;
+
+	KTRACE_DBGLOG("Entry - g_ktrace_reentry=%d", g_ktrace_reentry);
+	g_ktrace_reentry = false;
+
+	
+	if (g_ktrace_error) {
+		KTRACE_DBGLOG("[Error] Exit g_ktrace_error=%d", g_ktrace_error);
+
+		
+		g_ktrace_busy = false;
+		return;
+	}
+
+	
+	ktrace_ctl(fmt, args);
+
+	KTRACE_DBGLOG("Exit");
+
+	
+	g_ktrace_busy = false;
+	return;
+}
+
+
+
+
+
+static void ktrace_ctl(const char *fmt, va_list args)
+{
+	int  str_buf_len	= 0;
+    bool buffering		= true;
+    bool req_write		= false;
+
+	KTRACE_DBGLOG("Entry");
+
+	
+	vscnprintf(g_printk_msg, sizeof(g_printk_msg), fmt, args);
+
+#if defined(KTRACE_IGNORE)
+	
+	if (0 == strcmp(g_printk_msg, KTRACE_IGNORE_MSG)) {
+		if (g_ktrace_ignore) {
+			KTRACE_DBGLOG("Exit ignore");
+			return;
+		}
+		else {
+			g_ktrace_ignore = true;
+		}
+	}
+	else {
+		g_ktrace_ignore = false;
+	}
+	
+#endif	
+
+	
+	ktrace_set_time(g_printk_msg, g_ktrace_msg, sizeof(g_ktrace_msg));
+
+	
+	
+	
+	str_buf_len = strnlen(g_ktrace_msg, sizeof(g_ktrace_msg));
+	if ( str_buf_len > 0 )
+	{
+		if ('\n' != g_ktrace_msg[str_buf_len - 1])
+		{
+			if ( str_buf_len == sizeof(g_ktrace_msg)
+			  || str_buf_len == (sizeof(g_ktrace_msg)-1))
+			{
+				g_ktrace_msg[str_buf_len -2 ] = '\n';
+				g_ktrace_msg[str_buf_len -1 ] = '\0';
+			}
+			else
+			{
+				g_ktrace_msg[str_buf_len]      = '\n';
+				g_ktrace_msg[str_buf_len +1]   = '\0';
+			}
+		}
+	}
+	
+
+	
+
+
+	str_buf_len = strlen(g_ktrace_msg);
+	KTRACE_DBGLOG("str_buf_len=%d", str_buf_len);
+
+	if (g_ktrace_buf_len + str_buf_len >= KTRACE_BUF_SIZE) {
+
+
+		
+
+
+		if (NULL == strstr(g_ktrace_msg, KTRACE_RAW_SPIN_LOCK)) {
+
+			buffering = ktrace_write_msg();
+		}
+		else {
+			buffering = false;		
+		}
+
+	}
+
+	
+
+	if (buffering) {
+		KTRACE_DBGLOG("g_ktrace_buf_idx=%d, g_ktrace_buf_len=%d", g_ktrace_buf_idx, g_ktrace_buf_len);
+
+		snprintf(g_ktrace_buf[g_ktrace_buf_idx] + g_ktrace_buf_len, KTRACE_BUF_SIZE - g_ktrace_buf_len, "%s", g_ktrace_msg);
+		g_ktrace_buf_len = g_ktrace_buf_len + str_buf_len;
+	} else {
+		KTRACE_DBGLOG("[Warning] Ignoring new message.");
+	}
+
+	
+
+	if (g_ktrace_buf_len) {
+		if (NULL != strstr(g_ktrace_msg, KTRACE_SYSHALTED)) {
+			req_write = true;
+		}
+		else if (NULL != strstr(g_ktrace_msg, KTRACE_POWERDOWN)) {
+			req_write = true;
+		}
+		else if (NULL != strstr(g_ktrace_msg, KTRACE_EVENT0x90)) {
+			req_write = true;
+		}
+		else if (NULL != strstr(g_ktrace_msg, KTRACE_EVENT0x38)) {
+			req_write = true;
+		}
+
+
+		if (NULL != strstr(g_ktrace_msg, KTRACE_FORCEKMSG)) {
+			req_write = true;
+		}
+
+
+		if (req_write) {
+			ktrace_write_msg();
+		}
+
+
+
+
+
+
+	}
+
+
+
+	
+
+
+
+
+	KTRACE_DBGLOG("Exit");
+	return;
+}
+
+
+
+
+
+static void ktrace_set_time(char *input_str, char *output_str, int size)
+{
+	struct timeval tv;
+
+	KTRACE_DBGLOG("Entry - g_ktrace_clock=%d, g_ktrace_end_insmod=%d", g_ktrace_clock, g_ktrace_end_insmod);
+
+	
+
+
+	if (!g_ktrace_clock) {
+	    if (g_ktrace_end_insmod || NULL != strstr(input_str, KTRACE_SYSTEMCLOCK)) {
+			g_ktrace_clock = true;		
+		}
+	}
+
+	
+    if (g_ktrace_clock) {
+		do_gettimeofday(&tv);
+		snprintf(output_str, size, "%ld.%ld: %s", tv.tv_sec+(sys_tz.tz_minuteswest*60*(-1)), tv.tv_usec, input_str);	
+	}
+	
+	else {
+		snprintf(output_str, size, "0.0: %s", input_str);
+	}
+
+	KTRACE_DBGLOG("Exit");
+	return;
+}
+
+
+
+
+
+static bool ktrace_write_msg(void)
+{
+	bool wakeup = false;		
+
+	KTRACE_DBGLOG("Entry");
+
+	
+	g_ktrace_end_insmod = true;
+
+	
+	if (g_ktrace_initialized && (atomic_read(&g_ktrace_full) == 0)) {
+		KTRACE_DBGLOG("g_ktrace_full_buf=%p, g_ktrace_full_buf_len=%d", g_ktrace_full_buf, g_ktrace_full_buf_len);
+
+		
+		g_ktrace_full_buf     = g_ktrace_buf[g_ktrace_buf_idx];
+		g_ktrace_full_buf_len = g_ktrace_buf_len;
+
+		
+		atomic_set(&g_ktrace_full, 1);
+
+		
+		wake_up(&g_ktrace_signal_wait);
+
+		
+		g_ktrace_buf_idx = (g_ktrace_buf_idx) ? 0 : 1;
+		g_ktrace_buf_len = 0;
+
+		wakeup = true;
+
+		KTRACE_DBGLOG("Exit");
+	}
+	else {
+		KTRACE_DBGLOG("Exit g_ktrace_initialized=%d, wakeup=%d", g_ktrace_initialized, wakeup);
+	}
+
+	return wakeup;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #endif

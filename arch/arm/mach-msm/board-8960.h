@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #ifndef __ARCH_ARM_MACH_MSM_BOARD_MSM8960_H
 #define __ARCH_ARM_MACH_MSM_BOARD_MSM8960_H
@@ -76,6 +80,13 @@ enum {
 extern struct sx150x_platform_data msm8960_sx150x_data[];
 extern struct msm_camera_board_info msm8960_camera_board_info;
 
+
+extern struct msm_camera_board_info msm8960_camera_board_info_sub;
+
+
+
+
+int get_m7system_board_revision(void);
 void msm8960_init_cam(void);
 void msm8960_init_fb(void);
 void msm8960_init_pmic(void);
@@ -86,8 +97,15 @@ void msm8960_allocate_fb_region(void);
 void msm8960_set_display_params(char *prim_panel, char *ext_panel);
 void msm8960_pm8921_gpio_mpp_init(void);
 void msm8960_mdp_writeback(struct memtype_reserve *reserve_table);
+
+
+#define MSM_8960_GSBI1_QUP_I2C_BUS_ID 1
+
 #define MSM_8960_GSBI4_QUP_I2C_BUS_ID 4
 #define MSM_8960_GSBI3_QUP_I2C_BUS_ID 3
+
+#define MSM_8960_GSBI8_QUP_I2C_BUS_ID 8
+
 #define MSM_8960_GSBI10_QUP_I2C_BUS_ID 10
 
 extern struct msm_rtb_platform_data msm8960_rtb_pdata;

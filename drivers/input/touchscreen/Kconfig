@@ -1,6 +1,10 @@
 #
 # Touchscreen driver configuration
 #
+#/***********************************************************************/
+#/* Modified by                                                         */
+#/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+#/***********************************************************************/
 menuconfig INPUT_TOUCHSCREEN
 	bool "Touchscreens"
 	help
@@ -945,5 +949,18 @@ config TOUCHSCREEN_FT5X06
 
          To compile this driver as a module, choose M here: the
          module will be called ft5x06_ts.
+
+
+config TOUCHSCREEN_MXT224E
+	tristate "Atmel MaxTouch 224E"
+	depends on I2C
+	help
+	  Say Y here to enable support for the Atmel MaxTouch 224E touch
+	  controller.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called mxt224E.
 
 endif

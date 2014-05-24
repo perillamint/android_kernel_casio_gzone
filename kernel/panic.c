@@ -3,6 +3,10 @@
  *
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 /*
  * This function is used through-out the kernel (including mm and fs)
@@ -106,7 +110,16 @@ void panic(const char *fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
+
+
+	set_kernel_panic_log(1);
+	set_kernel_panic_magic_num();
+
 	printk(KERN_EMERG "Kernel panic - not syncing: %s\n",buf);
+
+	set_kernel_panic_log(0);
+
+
 #ifdef CONFIG_DEBUG_BUGVERBOSE
 	/*
 	 * Avoid nested stack-dumping if a panic occurs during oops processing

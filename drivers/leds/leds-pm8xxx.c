@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #define pr_fmt(fmt)	"%s: " fmt, __func__
 
@@ -112,6 +116,8 @@
 #define PM8XXX_FLASH_MODE_PWM		3
 
 #define MAX_LC_LED_BRIGHTNESS		20
+
+#define MAX_LC_LED_BUTTON_BRIGHTNESS		255
 #define MAX_FLASH_BRIGHTNESS		15
 #define MAX_KB_LED_BRIGHTNESS		15
 
@@ -153,6 +159,87 @@ static const struct supported_leds led_map[] = {
 	LED_MAP(PM8XXX_VERSION_8038, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1),
 };
 
+
+#define DVE068_DEBUG 0
+
+enum{
+	LED_NOT_CHARGE = 0,
+	LED_WALL_CHARGE,
+	LED_USB_CHARGE,
+	LED_CRADLE_CHARGE,
+	LED_WIRELESS_CHARGE,
+};
+
+
+
+static int leds_button_index_table[256]=
+{
+	0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0,    
+	10, 10, 10, 10, 10, 
+	10, 10, 10, 10, 10, 
+	10,                
+	10, 10, 10, 10, 10, 
+	10, 10, 10, 10, 10, 
+	10,                
+	9, 9, 9, 9, 9, 
+	9, 9, 9, 9, 9, 
+	9,                
+	9, 9, 9, 9, 9, 
+	9, 9, 9, 9, 9, 
+	9,                
+	8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8,
+	8, 8,          
+	8, 8, 8, 8, 8,
+	8, 8, 8, 8, 8,
+	8, 8,          
+	7, 7, 7, 7, 7, 
+	7, 7, 7, 7, 7, 
+	7, 7,        
+	7, 7, 7, 7, 7, 
+	7, 7, 7, 7, 7, 
+	7, 7,        
+	6, 6, 6, 6, 6, 
+	6, 6, 6, 6, 6, 
+	6, 6,       
+	6, 6, 6, 6, 6, 
+	6, 6, 6, 6, 6, 
+	6, 6,       
+	5, 5, 5, 5, 5,
+	5, 5, 5, 5, 5,
+	5, 5,       
+	5, 5, 5, 5, 5,
+	5, 5, 5, 5, 5,
+	5, 5,       
+	4, 4, 4, 4, 4, 
+	4, 4, 4, 4, 4, 
+	4, 4,          
+	4, 4, 4, 4, 4, 
+	4, 4, 4, 4, 4, 
+	4, 4,          
+	3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 
+	3, 3,         
+	3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 
+	3, 3,         
+	2, 2, 2, 2, 2, 
+	2, 2, 2, 2, 2, 
+	2, 2,           
+	2, 2, 2, 2, 2, 
+	2, 2, 2, 2, 2, 
+	2, 2,           
+	1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1,
+	1, 1,        
+	1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1,
+	1, 1        
+};
+
 /**
  * struct pm8xxx_led_data - internal led data structure
  * @led_classdev - led class device
@@ -180,6 +267,17 @@ struct pm8xxx_led_data {
 	struct wled_config_data *wled_cfg;
 	int			max_current;
 };
+
+
+
+
+
+
+
+
+
+
+
 
 static void led_kp_set(struct pm8xxx_led_data *led, enum led_brightness value)
 {
@@ -211,6 +309,38 @@ static void led_lc_set(struct pm8xxx_led_data *led, enum led_brightness value)
 
 	led->reg &= ~PM8XXX_DRV_LED_CTRL_MASK;
 	led->reg |= level;
+
+	if (DVE068_DEBUG)
+		printk("[DVE068_LEDS]%s: led->id=%d, value=%d, level=0x%x\n",
+				__func__, led->id, value, level);
+
+	rc = pm8xxx_writeb(led->dev->parent, SSBI_REG_ADDR_LED_CTRL(offset),
+								led->reg);
+	if (rc)
+		dev_err(led->cdev.dev, "can't set (%d) led value rc=%d\n",
+				led->id, rc);
+}
+
+
+static void led_lc_button_set(struct pm8xxx_led_data *led, enum led_brightness value)
+{
+	int rc, offset;
+	u8 level;
+	int button_value;
+
+	button_value=leds_button_index_table[value];
+
+	level = (button_value << PM8XXX_DRV_LED_CTRL_SHIFT) &
+				PM8XXX_DRV_LED_CTRL_MASK;
+
+	offset = PM8XXX_LED_OFFSET(led->id);
+
+	led->reg &= ~PM8XXX_DRV_LED_CTRL_MASK;
+	led->reg |= level;
+
+	if (DVE068_DEBUG)
+		printk("[DVE068_LEDS]%s: led->id=%d, button_value=%d, level=0x%x\n",
+				__func__, led->id, button_value, level);
 
 	rc = pm8xxx_writeb(led->dev->parent, SSBI_REG_ADDR_LED_CTRL(offset),
 								led->reg);
@@ -396,6 +526,24 @@ led_rgb_set(struct pm8xxx_led_data *led, enum led_brightness value)
 	}
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static int pm8xxx_led_pwm_work(struct pm8xxx_led_data *led)
 {
 	int duty_us;
@@ -409,10 +557,18 @@ static int pm8xxx_led_pwm_work(struct pm8xxx_led_data *led)
 			led_rgb_write(led, SSBI_REG_ADDR_RGB_CNTL1,
 				led->cdev.brightness);
 			rc = pwm_enable(led->pwm_dev);
+			
+			
+			
+			
 		} else {
 			pwm_disable(led->pwm_dev);
 			led_rgb_write(led, SSBI_REG_ADDR_RGB_CNTL1,
 				led->cdev.brightness);
+			
+			
+			
+			
 		}
 	} else {
 		if (led->cdev.brightness)
@@ -440,8 +596,11 @@ static void __pm8xxx_led_work(struct pm8xxx_led_data *led,
 		break;
 	case PM8XXX_ID_LED_0:
 	case PM8XXX_ID_LED_1:
-	case PM8XXX_ID_LED_2:
 		led_lc_set(led, level);
+		break;
+    
+	case PM8XXX_ID_LED_2:
+		led_lc_button_set(led, level);
 		break;
 	case PM8XXX_ID_FLASH_LED_0:
 	case PM8XXX_ID_FLASH_LED_1:
@@ -504,11 +663,18 @@ static int pm8xxx_set_led_mode_and_max_brightness(struct pm8xxx_led_data *led,
 	switch (led->id) {
 	case PM8XXX_ID_LED_0:
 	case PM8XXX_ID_LED_1:
-	case PM8XXX_ID_LED_2:
 		led->cdev.max_brightness = max_current /
 						PM8XXX_ID_LED_CURRENT_FACTOR;
 		if (led->cdev.max_brightness > MAX_LC_LED_BRIGHTNESS)
 			led->cdev.max_brightness = MAX_LC_LED_BRIGHTNESS;
+		led->reg = led_mode;
+		break;
+    
+	case PM8XXX_ID_LED_2:
+		led->cdev.max_brightness = max_current /
+						PM8XXX_ID_LED_CURRENT_FACTOR;
+		if (led->cdev.max_brightness > MAX_LC_LED_BUTTON_BRIGHTNESS)
+			led->cdev.max_brightness = MAX_LC_LED_BUTTON_BRIGHTNESS;
 		led->reg = led_mode;
 		break;
 	case PM8XXX_ID_LED_KB_LIGHT:

@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/mfd/pm8xxx/pm8921-bms.h>
 
@@ -98,6 +102,15 @@ static struct sf_lut rbatt_sf = {
 				{170899, 127211, 98968, 88907, 77102},
 	}
 };
+
+
+
+
+
+
+
+
+
 
 struct pm8921_bms_battery_data palladium_1500_data = {
 	.fcc			= 1500,

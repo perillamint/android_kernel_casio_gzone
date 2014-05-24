@@ -10,6 +10,11 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
+
 
 #ifndef MDP_H
 #define MDP_H
@@ -47,6 +52,10 @@ extern struct mdp_csc_cfg mdp_csc_convert[4];
 extern struct workqueue_struct *mdp_hist_wq;
 
 extern uint32 mdp_intr_mask;
+
+
+extern MSM_FB_REQUEST_FLAG mdp4_overlay_argb_enable;    
+
 
 #define MDP4_REVISION_V1		0
 #define MDP4_REVISION_V2		1
@@ -90,6 +99,9 @@ extern struct mdp_ccs mdp_ccs_yuv2rgb ;
 extern struct mdp_ccs mdp_ccs_rgb2yuv ;
 extern unsigned char hdmi_prim_display;
 extern unsigned char hdmi_prim_resolution;
+
+extern MSM_FB_REQUEST_FLAG mdp4_overlay_argb_enable;    
+
 
 struct vsync {
 	ktime_t vsync_time;
@@ -910,6 +922,10 @@ int mdp_ppp_v4l2_overlay_clear(void);
 int mdp_ppp_v4l2_overlay_play(struct fb_info *info,
 	unsigned long srcp0_addr, unsigned long srcp0_size,
 	unsigned long srcp1_addr, unsigned long srcp1_size);
+
+
+void mdp_mddi_dma_s_stop(int dma_flg);
+
 
 #ifdef CONFIG_FB_MSM_DTV
 void mdp_vid_quant_set(void);

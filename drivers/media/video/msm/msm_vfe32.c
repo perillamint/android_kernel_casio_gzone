@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/uaccess.h>
@@ -1349,6 +1353,11 @@ static int vfe32_proc_general(
 	case VFE_CMD_RESET:
 		pr_info("vfe32_proc_general: cmdID = %s\n",
 			vfe32_general_cmd[cmd->id]);
+		
+		if(vfe32_ctrl->vfebase == 0)
+		rc = -EINVAL;
+		else
+		
 		vfe32_reset();
 		break;
 	case VFE_CMD_START:
@@ -4237,6 +4246,10 @@ void msm_axi_subdev_release(struct v4l2_subdev *sd)
 
 	msm_camio_bus_scale_cfg(
 		pmctl->sdata->pdata->cam_bus_scale_table, S_EXIT);
+
+
+	vfe32_ctrl->register_total = 0;
+
 }
 
 void msm_vfe_subdev_release(struct v4l2_subdev *sd)

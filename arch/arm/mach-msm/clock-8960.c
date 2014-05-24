@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -439,8 +443,15 @@ static int set_vdd_sr2_hdmi_pll_8960(struct clk_vdd_class *vdd_class, int level)
 			rpm_vreg_set_voltage(RPM_VREG_ID_PM8921_L23,
 				RPM_VREG_VOTER3, 1800000, 1800000, 1);
 	} else {
+	    
+
 		rc = rpm_vreg_set_voltage(RPM_VREG_ID_PM8921_S8,
-				RPM_VREG_VOTER3, 2050000, 2100000, 1);
+				RPM_VREG_VOTER3, 2050000, 2050000, 1);
+
+
+
+
+		
 		if (rc)
 			return rc;
 		rc = rpm_vreg_set_voltage(RPM_VREG_ID_PM8921_L23,
@@ -2641,6 +2652,9 @@ static struct clk_freq_tbl clk_tbl_cam[] = {
 	F_CAM( 16000000, pll8, 4, 1,  6),
 	F_CAM( 19200000, pll8, 4, 1,  5),
 	F_CAM( 24000000, pll8, 4, 1,  4),
+
+	F_CAM( 25600000, pll8, 1, 2, 30),
+
 	F_CAM( 32000000, pll8, 4, 1,  3),
 	F_CAM( 48000000, pll8, 4, 1,  2),
 	F_CAM( 64000000, pll8, 3, 1,  2),
@@ -2880,6 +2894,9 @@ static int pix_rdi_clk_set_rate(struct clk *c, unsigned long rate)
 	 * needs to be on at what time.
 	 */
 	for (i = 0; mux_map[i]; i++) {
+
+		ret = clk_prepare(mux_map[i]);
+
 		ret = clk_enable(mux_map[i]);
 		if (ret)
 			goto err;
@@ -2891,6 +2908,10 @@ static int pix_rdi_clk_set_rate(struct clk *c, unsigned long rate)
 	/* Keep the new source on when switching inputs of an enabled clock */
 	if (rdi->enabled) {
 		clk_disable(mux_map[rdi->cur_rate]);
+
+		clk_unprepare(mux_map[rdi->cur_rate]);
+		clk_prepare(mux_map[rate]);
+
 		clk_enable(mux_map[rate]);
 	}
 	spin_lock_irqsave(&local_clock_reg_lock, flags);
@@ -2917,8 +2938,15 @@ static int pix_rdi_clk_set_rate(struct clk *c, unsigned long rate)
 	rdi->cur_rate = rate;
 	spin_unlock_irqrestore(&local_clock_reg_lock, flags);
 err:
-	for (i--; i >= 0; i--)
+
+
+	for (i--; i >= 0; i--) {
+
 		clk_disable(mux_map[i]);
+
+		clk_unprepare(mux_map[i]);
+	}
+
 
 	return 0;
 }
@@ -5452,14 +5480,22 @@ static struct clk_lookup msm_clocks_8960[] = {
 	CLK_LOOKUP("core_clk",		gsbi10_uart_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi11_uart_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi12_uart_clk.c,	""),
-	CLK_LOOKUP("core_clk",		gsbi1_qup_clk.c,	"spi_qsd.0"),
+
+
+
+	CLK_LOOKUP("core_clk",		gsbi1_qup_clk.c,	"qup_i2c.1"),
+
 	CLK_LOOKUP("core_clk",		gsbi2_qup_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi3_qup_clk.c,	"qup_i2c.3"),
 	CLK_LOOKUP("core_clk",		gsbi4_qup_clk.c,	"qup_i2c.4"),
 	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi6_qup_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi7_qup_clk.c,	""),
-	CLK_LOOKUP("core_clk",		gsbi8_qup_clk.c,	""),
+
+	CLK_LOOKUP("core_clk",		gsbi8_qup_clk.c,	"qup_i2c.8"),
+
+
+
 	CLK_LOOKUP("core_clk",		gsbi9_qup_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"qup_i2c.10"),
 	CLK_LOOKUP("core_clk",		gsbi11_qup_clk.c,	""),
@@ -5492,14 +5528,22 @@ static struct clk_lookup msm_clocks_8960[] = {
 	CLK_LOOKUP("core_clk",		ce1_core_clk.c,		"qce.0"),
 	CLK_LOOKUP("core_clk",		ce1_core_clk.c,		"qcrypto.0"),
 	CLK_LOOKUP("dma_bam_pclk",	dma_bam_p_clk.c,	NULL),
-	CLK_LOOKUP("iface_clk",		gsbi1_p_clk.c,		"spi_qsd.0"),
+
+
+
+	CLK_LOOKUP("iface_clk",		gsbi1_p_clk.c,		"qup_i2c.1"),
+
 	CLK_LOOKUP("iface_clk",		gsbi2_p_clk.c,		""),
 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"qup_i2c.3"),
 	CLK_LOOKUP("iface_clk",		gsbi4_p_clk.c,		"qup_i2c.4"),
 	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,	"msm_serial_hsl.0"),
 	CLK_LOOKUP("iface_clk",		gsbi6_p_clk.c,  "msm_serial_hs.0"),
 	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,		""),
-	CLK_LOOKUP("iface_clk",		gsbi8_p_clk.c,	"msm_serial_hsl.1"),
+
+	CLK_LOOKUP("iface_clk",		gsbi8_p_clk.c,		"qup_i2c.8"),
+
+
+
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c,  "msm_serial_hs.1"),
 	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"qup_i2c.10"),
 	CLK_LOOKUP("iface_clk",		gsbi11_p_clk.c,		""),
@@ -5521,12 +5565,20 @@ static struct clk_lookup msm_clocks_8960[] = {
 	CLK_LOOKUP("iface_clk",		pmic_arb1_p_clk.c,	""),
 	CLK_LOOKUP("core_clk",		pmic_ssbi2_clk.c,	""),
 	CLK_LOOKUP("mem_clk",		rpm_msg_ram_p_clk.c,	""),
+
+
+	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-003c"),
+
+
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-001a"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-006c"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0048"),
 	CLK_LOOKUP("cam_clk",		cam2_clk.c,		NULL),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0020"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0034"),
+
+	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0036"),
+
 	CLK_LOOKUP("csi_src_clk",	csi0_src_clk.c,		"msm_csid.0"),
 	CLK_LOOKUP("csi_src_clk",	csi1_src_clk.c,		"msm_csid.1"),
 	CLK_LOOKUP("csi_src_clk",	csi2_src_clk.c,		"msm_csid.2"),

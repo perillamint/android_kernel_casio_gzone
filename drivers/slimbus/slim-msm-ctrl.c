@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 #include <linux/irq.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -1355,7 +1359,7 @@ send_capability:
 							ret);
 				}
 			} else {
-				sat->sent_capability = true;
+			sat->sent_capability = true;
 			}
 			break;
 		case SLIM_USR_MC_ADDR_QUERY:
@@ -2044,6 +2048,7 @@ static int __devinit msm_slim_probe(struct platform_device *pdev)
 	dev->ctrl.dev.parent = &pdev->dev;
 	dev->ctrl.dev.of_node = pdev->dev.of_node;
 
+	dev->wr_comp = NULL;			 
 	ret = request_irq(dev->irq, msm_slim_interrupt, IRQF_TRIGGER_HIGH,
 				"msm_slim_irq", dev);
 	if (ret) {

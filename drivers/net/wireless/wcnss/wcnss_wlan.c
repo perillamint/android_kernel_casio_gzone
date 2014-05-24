@@ -9,6 +9,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -34,6 +38,13 @@
 /* module params */
 #define WCNSS_CONFIG_UNSPECIFIED (-1)
 static int has_48mhz_xo = WCNSS_CONFIG_UNSPECIFIED;
+
+
+#define WCNSS_OK       1
+#define WCNSS_FAIL    0
+static int wcnss_diag_value = WCNSS_OK; 
+
+
 module_param(has_48mhz_xo, int, S_IWUSR | S_IRUGO);
 MODULE_PARM_DESC(has_48mhz_xo, "Is an external 48 MHz XO present");
 
@@ -188,6 +199,16 @@ wcnss_wlan_ctrl_probe(struct platform_device *pdev)
 	return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
 static int __devexit
 wcnss_wlan_ctrl_remove(struct platform_device *pdev)
 {
@@ -208,6 +229,13 @@ static struct platform_driver wcnss_wlan_ctrl_driver = {
 	.probe	= wcnss_wlan_ctrl_probe,
 	.remove	= __devexit_p(wcnss_wlan_ctrl_remove),
 };
+
+
+int get_wcnss_diag(void)
+{
+    return wcnss_diag_value;
+}
+EXPORT_SYMBOL(get_wcnss_diag);
 
 struct device *wcnss_wlan_get_device(void)
 {
@@ -349,6 +377,7 @@ wcnss_trigger_config(struct platform_device *pdev)
 	/* allocate 5-wire GPIO resources */
 	if (!penv->gpios_5wire) {
 		dev_err(&pdev->dev, "insufficient IO resources\n");
+		wcnss_diag_value = WCNSS_FAIL;  
 		ret = -ENOENT;
 		goto fail_gpio_res;
 	}
@@ -357,6 +386,7 @@ wcnss_trigger_config(struct platform_device *pdev)
 	ret = wcnss_gpios_config(penv->gpios_5wire, true);
 	if (ret) {
 		dev_err(&pdev->dev, "WCNSS gpios config failed.\n");
+		wcnss_diag_value = WCNSS_FAIL;  
 		goto fail_gpio_res;
 	}
 
@@ -365,6 +395,7 @@ wcnss_trigger_config(struct platform_device *pdev)
 					WCNSS_WLAN_SWITCH_ON);
 	if (ret) {
 		dev_err(&pdev->dev, "WCNSS Power-up failed.\n");
+		wcnss_diag_value = WCNSS_FAIL;  
 		goto fail_power;
 	}
 
@@ -374,6 +405,7 @@ wcnss_trigger_config(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Peripheral Loader failed on WCNSS.\n");
 		ret = PTR_ERR(penv->pil);
 		penv->pil = NULL;
+		wcnss_diag_value = WCNSS_FAIL;  
 		goto fail_pil;
 	}
 
@@ -388,14 +420,19 @@ wcnss_trigger_config(struct platform_device *pdev)
 	if (!(penv->mmio_res && penv->tx_irq_res && penv->rx_irq_res)) {
 		dev_err(&pdev->dev, "insufficient resources\n");
 		ret = -ENOENT;
+		wcnss_diag_value = WCNSS_FAIL;  
 		goto fail_res;
 	}
 
 	/* register sysfs entries */
 	ret = wcnss_create_sysfs(&pdev->dev);
 	if (ret)
+	{
+	        wcnss_diag_value = WCNSS_FAIL;  
 		goto fail_sysfs;
+	}
 
+	wcnss_diag_value = WCNSS_OK;  
 	return 0;
 
 fail_sysfs:

@@ -1,3 +1,8 @@
+#/**********************************************************************
+#* File Name: sound/soc/msm/Kconfig
+#* 
+#* (C) NEC CASIO Mobile Communications, Ltd. 2013
+#**********************************************************************/
 menu "MSM SoC Audio support"
 
 #7201 7625 variants
@@ -80,12 +85,12 @@ config SND_SOC_MSM8660_LPAIF
 config SND_VOIP_PCM
 	tristate
 
-config SND_SOC_MSM_QDSP6_HDMI_AUDIO
-	tristate "Soc QDSP6 HDMI Audio DAI driver"
-	depends on FB_MSM_HDMI_MSM_PANEL
-	default n
-	help
-	 To support HDMI Audio on MSM8960 over QDSP6.
+
+
+
+
+
+
 
 config MSM_8x60_VOIP
 	tristate "SoC Machine driver for voip"
@@ -147,8 +152,12 @@ config SND_SOC_MSM8960
 	select SND_SOC_WCD9310
 	select SND_SOC_WCD9304
 	select SND_SOC_MSM_HOSTLESS_PCM
-	select SND_SOC_MSM_QDSP6_HDMI_AUDIO
+
 	select SND_SOC_CS8427
+	
+	select SND_SOC_DVE068 if DVE068_AUDIO
+	
+	select SND_SOC_ES310 if DVE068_AUDIO
 	default n
 	help
 	 To add support for SoC audio on MSM8960 and APQ8064 boards

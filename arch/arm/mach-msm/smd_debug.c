@@ -14,6 +14,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 
 #include <linux/debugfs.h>
 #include <linux/list.h>
@@ -534,8 +538,23 @@ static int debug_read_mem(char *buf, int max)
 
 	for (n = 0; n < SMEM_NUM_ITEMS; n++) {
 		if (toc[n].allocated == 0)
-			continue;
-		i += scnprintf(buf + i, max - i,
+			continue; 
+
+
+		if(n == SMEM_ERR_CRASH_LOG )
+			i += scnprintf(buf + i, max - i,
+			       "SMEM_ERR_CRASH_LOG : %04d: offset %08x size %08x\n",
+			       n, toc[n].offset, toc[n].size);
+
+		else if(n == SMEM_ERR_F3_TRACE_LOG )
+			i += scnprintf(buf + i, max - i,
+			       "SMEM_ERR_F3_TRACE_LOG : %04d: offset %08x size %08x\n",
+			       n, toc[n].offset, toc[n].size);
+		else
+
+
+
+			i += scnprintf(buf + i, max - i,
 			       "%04d: offset %08x size %08x\n",
 			       n, toc[n].offset, toc[n].size);
 	}

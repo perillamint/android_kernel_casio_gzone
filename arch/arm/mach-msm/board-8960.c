@@ -10,6 +10,10 @@
  * GNU General Public License for more details.
  *
  */
+/***********************************************************************/
+/* Modified by                                                         */
+/* (C) NEC CASIO Mobile Communications, Ltd. 2013                      */
+/***********************************************************************/
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/io.h>
@@ -78,6 +82,12 @@
 #endif
 
 #include <linux/smsc3503.h>
+
+
+#include <sound/es310.h>
+#include <sound/yda160.h>
+
+
 #include <linux/ion.h>
 #include <mach/ion.h>
 #include <mach/mdm2.h>
@@ -101,6 +111,22 @@
 #include "smd_private.h"
 #include "pm-boot.h"
 #include "msm_watchdog.h"
+
+
+
+
+
+
+
+
+#include <mach/board_gg3.h>
+
+
+#include <linux/st21nfca.h>
+
+#define ST21NFCA_I2C_ADDRESS	(0x01)
+#define ST21NFCA_WAKEUP_GPIO	(106)
+
 
 static struct platform_device msm_fm_platform_init = {
 	.name = "iris_fm",
@@ -145,7 +171,13 @@ struct sx150x_platform_data msm8960_sx150x_data[] = {
 #define MSM_HDMI_PRIM_PMEM_SIZE 0x4000000 /* 64 Mbytes */
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-#define HOLE_SIZE	0x20000
+
+
+
+
+ #define HOLE_SIZE      0x100000 
+
+
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x65000
 #ifdef CONFIG_MSM_IOMMU
 #define MSM_ION_MM_SIZE            0x3800000 /* Need to be multiple of 64K */
@@ -158,7 +190,13 @@ struct sx150x_platform_data msm8960_sx150x_data[] = {
 #define MSM_ION_QSECOM_SIZE        0x600000 /* (6MB) */
 #define MSM_ION_HEAP_NUM	8
 #endif
-#define MSM_ION_MM_FW_SIZE	(0x200000 - HOLE_SIZE) /* 128kb */
+
+
+
+
+ #define MSM_ION_MM_FW_SIZE	0x200000 
+
+
 #define MSM_ION_MFC_SIZE	SZ_8K
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 
@@ -166,9 +204,16 @@ struct sx150x_platform_data msm8960_sx150x_data[] = {
 #define MSM_LIQUID_ION_SF_SIZE MSM_LIQUID_PMEM_SIZE
 #define MSM_HDMI_PRIM_ION_SF_SIZE MSM_HDMI_PRIM_PMEM_SIZE
 
-#define MSM_MM_FW_SIZE		(0x200000 - HOLE_SIZE) /* 2mb -128kb*/
-#define MSM8960_FIXED_AREA_START (0xa0000000 - (MSM_ION_MM_FW_SIZE + \
-							HOLE_SIZE))
+
+
+
+
+
+
+ #define MSM_MM_FW_SIZE		0x200000 
+ #define MSM8960_FIXED_AREA_START (0xb0000000 - MSM_ION_MM_FW_SIZE)
+
+
 #define MAX_FIXED_AREA_SIZE	0x10000000
 #define MSM8960_FW_START	MSM8960_FIXED_AREA_START
 
@@ -177,6 +222,9 @@ static unsigned msm_ion_sf_size = MSM_ION_SF_SIZE;
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x110C000
 #define MSM_ION_HEAP_NUM	1
 #endif
+
+static int gpio17;
+
 
 #ifdef CONFIG_KERNEL_PMEM_EBI_REGION
 static unsigned pmem_kernel_ebi1_size = MSM_PMEM_KERNEL_EBI1_SIZE;
@@ -868,9 +916,9 @@ static struct wcd9xxx_pdata tabla_platform_data = {
 	.reset_gpio = PM8921_GPIO_PM_TO_SYS(34),
 	.micbias = {
 		.ldoh_v = TABLA_LDOH_2P85_V,
-		.cfilt1_mv = 1800,
+		.cfilt1_mv = 2700, 
 		.cfilt2_mv = 2700,
-		.cfilt3_mv = 1800,
+		.cfilt3_mv = 2700,
 		.bias1_cfilt_sel = TABLA_CFILT1_SEL,
 		.bias2_cfilt_sel = TABLA_CFILT2_SEL,
 		.bias3_cfilt_sel = TABLA_CFILT3_SEL,
@@ -935,9 +983,9 @@ static struct wcd9xxx_pdata tabla20_platform_data = {
 	.reset_gpio = PM8921_GPIO_PM_TO_SYS(34),
 	.micbias = {
 		.ldoh_v = TABLA_LDOH_2P85_V,
-		.cfilt1_mv = 1800,
+		.cfilt1_mv = 2700, 
 		.cfilt2_mv = 2700,
-		.cfilt3_mv = 1800,
+		.cfilt3_mv = 2700,	
 		.bias1_cfilt_sel = TABLA_CFILT1_SEL,
 		.bias2_cfilt_sel = TABLA_CFILT2_SEL,
 		.bias3_cfilt_sel = TABLA_CFILT3_SEL,
@@ -1037,7 +1085,7 @@ static struct resource resources_wcnss_wlan[] = {
 };
 
 static struct qcom_wcnss_opts qcom_wcnss_pdata = {
-	.has_48mhz_xo	= 1,
+	.has_48mhz_xo	= 0,  
 };
 
 static struct platform_device msm_device_wcnss_wlan = {
@@ -1168,10 +1216,10 @@ static struct platform_device qseecom_device = {
 };
 #endif
 
-#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
-		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE) || \
-		defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
-		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE) || 		defined(CONFIG_CRYPTO_DEV_QCEDEV) || 		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+
+
+
 
 #define QCE_SIZE		0x10000
 #define QCE_0_BASE		0x18500000
@@ -1284,8 +1332,8 @@ static struct resource qcedev_resources[] = {
 
 #endif
 
-#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
-		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
+#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
+
 
 static struct msm_ce_hw_support qcrypto_ce_hw_suppport = {
 	.ce_shared = QCE_CE_SHARED,
@@ -1307,8 +1355,8 @@ static struct platform_device qcrypto_device = {
 };
 #endif
 
-#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
-		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || 		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+
 
 static struct msm_ce_hw_support qcedev_ce_hw_suppport = {
 	.ce_shared = QCE_CE_SHARED,
@@ -1460,10 +1508,12 @@ static void __init msm8960_init_buses(void)
 #endif
 }
 
-static struct msm_spi_platform_data msm8960_qup_spi_gsbi1_pdata = {
-	.max_clock_speed = 15060000,
-	.infinite_mode	 = 0xFFC0,
-};
+
+
+
+
+
+
 
 #ifdef CONFIG_USB_MSM_OTG_72K
 static struct msm_otg_platform_data msm_otg_pdata;
@@ -1526,7 +1576,7 @@ static struct msm_bus_scale_pdata usb_bus_scale_pdata = {
 #define MSM_MPM_PIN_USB1_OTGSESSVLD	40
 
 static struct msm_otg_platform_data msm_otg_pdata = {
-	.mode			= USB_OTG,
+	.mode			= USB_PERIPHERAL,        
 	.otg_control		= OTG_PMIC_CONTROL,
 	.phy_type		= SNPS_28NM_INTEGRATED_PHY,
 	.pmic_id_irq		= PM8921_USB_ID_IN_IRQ(PM8921_IRQ_BASE),
@@ -1597,7 +1647,11 @@ static int usb_diag_update_pid_and_serial_num(uint32_t pid, const char *snum)
 				__func__, dload, pid, snum);
 	/* update pid */
 	dload->magic_struct.pid = PID_MAGIC_ID;
-	dload->pid = pid;
+
+	dload->pid = 0x0327;
+
+
+
 
 	/* update serial number */
 	dload->magic_struct.serial_num = 0;
@@ -1897,6 +1951,7 @@ static struct i2c_board_info msm_isa1200_board_info[] __initdata = {
 	},
 };
 
+
 #define CYTTSP_TS_GPIO_IRQ		11
 #define CYTTSP_TS_SLEEP_GPIO		50
 #define CYTTSP_TS_RESOUT_N_GPIO		52
@@ -2018,6 +2073,7 @@ static struct i2c_board_info cyttsp_info[] __initdata = {
 #endif /* CY_USE_TIMER */
 	},
 };
+
 
 /* configuration data for mxt1386 */
 static const u8 mxt1386_config_data[] = {
@@ -2365,6 +2421,217 @@ static struct msm_mhl_platform_data mhl_platform_data = {
 	.gpio_hdmi_mhl_mux = 0,
 };
 
+
+
+
+#include <linux/i2c/mxt224E.h>
+
+#define TOUCH_RESET_GPIO		50
+#define MXT224E_TS_GPIO_IRQ	11
+#define MXT224_MAX_MT_FINGERS 5
+#define MXT224E_TS_VDD 17
+
+static void mxt224E_power_on(void)
+{
+	
+	gpio_set_value_cansleep(gpio17, 1);
+	mdelay(5);
+	
+	gpio_direction_output(TOUCH_RESET_GPIO, 1);
+	mdelay(100);	
+}
+
+static void mxt224E_power_off(void)
+{
+	
+	gpio_set_value_cansleep(gpio17, 0);
+	
+	mdelay(50);
+	
+	gpio_direction_output(TOUCH_RESET_GPIO, 0);
+}
+
+
+static struct mxt224E_platform_data mxt224E_data = {
+	.max_finger_touches = T9_NUMTOUCH,
+	.gpio_read_done = MXT224E_TS_GPIO_IRQ,
+	.min_x = 0,
+	.max_x = 1023,
+	.min_y = 0,
+	.max_y = 969,
+	.min_z = 0,
+	.max_z = 255,
+	.min_w = 0,
+	.max_w = 30,
+	.power_on = mxt224E_power_on,
+	.power_off = mxt224E_power_off,
+};
+
+
+static struct i2c_board_info mxt224E_info[] __initdata = {
+	{
+		I2C_BOARD_INFO(MXT224E_DEV_NAME, 0x4a),
+		.platform_data = &mxt224E_data,
+		.irq = MSM_GPIO_TO_INT(MXT224E_TS_GPIO_IRQ),
+	},
+};
+
+static void gg3_ext_charger_init(void)
+{
+    int rc;
+    rc = gpio_request(GPIO_WIRELESS_CHG_INT, "wireless_int_gpio");
+	if (rc) {
+		pr_err("Wireless Charger gpio failed, gpio [%d]\n", GPIO_WIRELESS_CHG_INT);
+        goto err_wireless_chg_gpio;
+	}
+    rc = gpio_direction_input(GPIO_WIRELESS_CHG_INT);
+    if (rc) {
+        pr_err("%s: unable to set direction for Wireless Charger gpio [%d]\n", __func__, GPIO_WIRELESS_CHG_INT);
+        goto err_wireless_chg_gpio;
+    }
+	rc = gpio_request(GPIO_CRADLE_CHG_INT, "cradle_int_gpio");
+	if (rc) {
+		pr_err("Cradle Charger gpio failed, gpio [%d]\n", GPIO_CRADLE_CHG_INT);
+        goto err_cradle_chg_gpio;
+	}
+    rc = gpio_direction_input(GPIO_CRADLE_CHG_INT);
+    if (rc) {
+        pr_err("%s: unable to set direction for Cradle Charger gpio [%d]\n", __func__, GPIO_CRADLE_CHG_INT);
+        goto err_cradle_chg_gpio;
+    }
+
+err_cradle_chg_gpio:
+    gpio_free(GPIO_CRADLE_CHG_INT);
+err_wireless_chg_gpio:
+    gpio_free(GPIO_WIRELESS_CHG_INT);
+
+}
+
+static void mxt224E_init(void)
+{
+	int rc;
+
+	gpio17 = PM8921_GPIO_PM_TO_SYS(MXT224E_TS_VDD);
+	rc = gpio_request(gpio17, "tsp_enable");
+	if (rc) {
+		pr_err("pm gpio 17 failed, rc=%d\n", rc);
+		return;
+	}
+
+	gpio_set_value_cansleep(gpio17, 1);
+	mdelay(10);
+
+	rc = gpio_request(MXT224E_TS_GPIO_IRQ, "mxt224E_ts_irq_gpio");
+	if (rc) {
+		pr_err("%s: unable to request mxt_ts_irq gpio [%d]\n",
+				__func__, MXT224E_TS_GPIO_IRQ);
+		goto err_pmic_gpio_req;
+	}
+
+	rc = gpio_direction_input(MXT224E_TS_GPIO_IRQ);
+	if (rc) {
+		pr_err("%s: unable to set_direction for mxt_ts_irq gpio [%d]\n",
+				__func__, MXT224E_TS_GPIO_IRQ);
+		goto err_irq_gpio_req;
+	}
+
+	rc = gpio_request(TOUCH_RESET_GPIO, "mxt224E_reset_gpio");
+	if (rc) {
+		pr_err("%s: unable to request mxt_reset gpio [%d]\n",
+				__func__, TOUCH_RESET_GPIO);
+		goto err_irq_gpio_req;
+	}
+
+	rc = gpio_direction_output(TOUCH_RESET_GPIO, 1);
+	if (rc) {
+		pr_err("%s: unable to set_direction for mxt_reset gpio [%d]\n",
+				__func__, TOUCH_RESET_GPIO);
+		goto err_reset_gpio_req;
+	}
+
+	mdelay(50);
+	return;
+
+err_reset_gpio_req:
+	gpio_free(TOUCH_RESET_GPIO);
+err_irq_gpio_req:
+	gpio_free(MXT224E_TS_GPIO_IRQ);
+err_pmic_gpio_req:
+	gpio_free(gpio17);	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static ssize_t gg3_virtual_keys_show(struct kobject *kobj,
+					struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf,
+		__stringify(EV_KEY) ":" __stringify(KEY_BACK) ":71:845:73:62"
+		":" __stringify(EV_KEY) ":"
+					__stringify(KEY_HOME) ":183:845:73:62"
+		":" __stringify(EV_KEY) ":"
+		
+					__stringify(KEY_APP_SWITCH) ":294:845:73:62"
+		
+		":" __stringify(EV_KEY) ":"
+					__stringify(KEY_MENU) ":406:845:73:62"
+		"\n");
+}
+
+static struct kobj_attribute gg3_virtual_keys_attr = {
+	.attr = {
+		.name = "virtualkeys.mxt224E_ts_input",
+		.mode = S_IRUGO,
+	},
+	.show = &gg3_virtual_keys_show,
+};
+
+static struct attribute *gg3_properties_attrs[] = {
+	&gg3_virtual_keys_attr.attr,
+	NULL,
+};
+
+static struct attribute_group gg3_properties_attr_group = {
+	.attrs = gg3_properties_attrs,
+};
+
+static void gg3_virtual_keys_init(void)
+{
+	struct kobject *properties_kobj;
+	int ret = 0;
+
+	properties_kobj = kobject_create_and_add("board_properties", NULL);
+	if (properties_kobj)
+		ret = sysfs_create_group(properties_kobj,
+						&gg3_properties_attr_group);
+	if (!properties_kobj || ret)
+		pr_err("failed to create board_properties\n");
+}
+
+
 static struct i2c_board_info sii_device_info[] __initdata = {
 	{
 #ifdef CONFIG_FB_MSM_HDMI_MHL_8334
@@ -2383,8 +2650,21 @@ static struct i2c_board_info sii_device_info[] __initdata = {
 	},
 };
 
+
+static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi1_pdata = {
+	.clk_freq = 400000,
+	.src_clk_rate = 24000000,
+};
+
+
 static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi4_pdata = {
-	.clk_freq = 100000,
+
+
+	.clk_freq = 360000,
+
+
+
+
 	.src_clk_rate = 24000000,
 };
 
@@ -2393,10 +2673,20 @@ static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi3_pdata = {
 	.src_clk_rate = 24000000,
 };
 
-static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi10_pdata = {
+static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi8_pdata = {
 	.clk_freq = 100000,
 	.src_clk_rate = 24000000,
+	
 };
+
+
+
+
+
+
+
+
+
 
 static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi12_pdata = {
 	.clk_freq = 100000,
@@ -2409,29 +2699,30 @@ static struct msm_pm_sleep_status_data msm_pm_slp_sts_data = {
 	.mask = 1UL << 13,
 };
 
-static struct ks8851_pdata spi_eth_pdata = {
-	.irq_gpio = KS8851_IRQ_GPIO,
-	.rst_gpio = KS8851_RST_GPIO,
-};
 
-static struct spi_board_info spi_board_info[] __initdata = {
-	{
-		.modalias               = "ks8851",
-		.irq                    = MSM_GPIO_TO_INT(KS8851_IRQ_GPIO),
-		.max_speed_hz           = 19200000,
-		.bus_num                = 0,
-		.chip_select            = 0,
-		.mode                   = SPI_MODE_0,
-		.platform_data		= &spi_eth_pdata
-	},
-	{
-		.modalias               = "dsi_novatek_3d_panel_spi",
-		.max_speed_hz           = 10800000,
-		.bus_num                = 0,
-		.chip_select            = 1,
-		.mode                   = SPI_MODE_0,
-	},
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 static struct platform_device msm_device_saw_core0 = {
 	.name          = "saw-regulator",
@@ -2559,10 +2850,19 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm8960_device_ext_5v_vreg,
 	&msm8960_device_ssbi_pmic,
 	&msm8960_device_ext_otg_sw_vreg,
-	&msm8960_device_qup_spi_gsbi1,
+
+
+
+	&msm8960_device_qup_i2c_gsbi1,
+
 	&msm8960_device_qup_i2c_gsbi3,
 	&msm8960_device_qup_i2c_gsbi4,
-	&msm8960_device_qup_i2c_gsbi10,
+
+	&msm8960_device_qup_i2c_gsbi8,
+
+	
+	
+	
 #ifndef CONFIG_MSM_DSPS
 	&msm8960_device_qup_i2c_gsbi12,
 #endif
@@ -2571,13 +2871,13 @@ static struct platform_device *common_devices[] __initdata = {
 #if defined(CONFIG_QSEECOM)
 	&qseecom_device,
 #endif
-#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
-		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
+#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
+
 	&qcrypto_device,
 #endif
 
-#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
-		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || 		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+
 	&qcedev_device,
 #endif
 #ifdef CONFIG_MSM_ROTATOR
@@ -2634,6 +2934,10 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm8960_cache_dump_device,
 	&msm8960_iommu_domain_device,
 	&msm_tsens_device,
+	
+	
+
+	
 };
 
 static struct platform_device *sim_devices[] __initdata = {
@@ -2673,13 +2977,13 @@ static struct platform_device *sim_devices[] __initdata = {
 	&msm_cpudai_incall_record_rx,
 	&msm_cpudai_incall_record_tx,
 
-#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
-		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
+#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
+
 	&qcrypto_device,
 #endif
 
-#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
-		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || 		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+
 	&qcedev_device,
 #endif
 };
@@ -2762,14 +3066,24 @@ static void __init msm8960_i2c_init(void)
 	if (socinfo_get_platform_subtype() == PLATFORM_SUBTYPE_SGLTE)
 		msm8960_i2c_qup_gsbi4_pdata.keep_ahb_clk_on = 1;
 
+
+	msm8960_device_qup_i2c_gsbi1.dev.platform_data =
+					&msm8960_i2c_qup_gsbi1_pdata;
+
 	msm8960_device_qup_i2c_gsbi4.dev.platform_data =
 					&msm8960_i2c_qup_gsbi4_pdata;
 
 	msm8960_device_qup_i2c_gsbi3.dev.platform_data =
 					&msm8960_i2c_qup_gsbi3_pdata;
 
-	msm8960_device_qup_i2c_gsbi10.dev.platform_data =
-					&msm8960_i2c_qup_gsbi10_pdata;
+	msm8960_device_qup_i2c_gsbi8.dev.platform_data =
+					&msm8960_i2c_qup_gsbi8_pdata;
+
+
+
+
+
+
 
 	msm8960_device_qup_i2c_gsbi12.dev.platform_data =
 					&msm8960_i2c_qup_gsbi12_pdata;
@@ -2801,12 +3115,12 @@ static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 		415, 715, 340827, 475,
 	},
 
-	{
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE,
-		MSM_RPMRS_LIMITS(ON, ACTIVE, MAX, ACTIVE),
-		true,
-		1300, 228, 1200000, 2000,
-	},
+
+
+
+
+
+
 
 	{
 		MSM_PM_SLEEP_MODE_POWER_COLLAPSE,
@@ -2850,7 +3164,6 @@ static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 		20000, 2, 5752000, 32000,
 	},
 };
-
 
 static struct msm_rpmrs_platform_data msm_rpmrs_data __initdata = {
 	.levels = &msm_rpmrs_levels[0],
@@ -2898,9 +3211,392 @@ struct i2c_registry {
 	int                    len;
 };
 
+#define ES310_RESET_GPIO 64
+#define ES310_WAKEUP_GPIO 6 
+#define ES310_MIC1_GPIO   34
+#define ES310_MIC2_GPIO   35
+
+static struct msm_xo_voter *es310_xo_d1;
+static struct regulator *es310_supply;
+
+
+static int es310_aud_clk(int on)
+{
+	int ret = 0;
+
+    pr_debug("%s start on %d\n", __func__, on);
+	ret = on ? msm_xo_mode_vote(es310_xo_d1, MSM_XO_MODE_ON) :
+			msm_xo_mode_vote(es310_xo_d1, MSM_XO_MODE_OFF);
+	if (ret < 0) {
+		pr_err("%s: failed to %svote for TCXO D1 buffer%d\n",
+				__func__, on ? "" : "de-", ret);
+		goto err_xo_vote;
+	}
+	
+    pr_debug("%s end on %d\n", __func__, on);
+    
+	return 0;
+
+err_xo_vote:
+	regulator_put(es310_supply);
+
+	return ret;
+}
+
+
+static int es310_power(int on)
+{
+	int ret = 0;
+
+    gpio_set_value(ES310_RESET_GPIO, !!on);
+    gpio_set_value(ES310_WAKEUP_GPIO, !!on);
+    gpio_set_value(ES310_MIC1_GPIO, !on);
+    gpio_set_value(ES310_MIC2_GPIO, !on);
+
+    ret = regulator_enable(es310_supply);
+	if (ret != 0) {
+		pr_err("%s: Failed to enable supply : %d\n",
+				__func__, ret);
+		goto err_power;
+	}
+	
+	ret = on ? msm_xo_mode_vote(es310_xo_d1, MSM_XO_MODE_ON) :
+			msm_xo_mode_vote(es310_xo_d1, MSM_XO_MODE_OFF);
+	if (ret < 0) {
+		pr_err("%s: failed to %svote for TCXO D1 buffer%d\n",
+				__func__, on ? "" : "de-", ret);
+		goto err_xo_vote;
+	}
+
+	return 0;
+
+err_xo_vote:
+	regulator_put(es310_supply);
+err_power:
+	gpio_set_value(ES310_RESET_GPIO, !on);	
+	gpio_set_value(ES310_WAKEUP_GPIO, !on);	
+
+	return ret;
+}
+
+static int es310_dev_setup(bool enable)
+{
+	int rc = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+	if (enable == true) {
+		rc = gpio_request(ES310_RESET_GPIO, "es310_reset_gpio");
+		if (rc) {
+			pr_err("%s: unable to request gpio %d (%d)\n",
+					__func__, ES310_RESET_GPIO, rc);
+			return rc;
+		}
+
+		rc = gpio_direction_output(ES310_RESET_GPIO, 1);
+		if (rc) {
+			pr_err("%s: Unable to set direction\n", __func__);
+			goto free_gpio;
+		}
+
+		rc = gpio_request(ES310_WAKEUP_GPIO, "es310_wakeup_gpio");
+		if (rc) {
+			pr_err("%s: unable to request gpio %d (%d)\n",
+					__func__, ES310_WAKEUP_GPIO, rc);
+			return rc;
+		}
+
+		rc = gpio_direction_output(ES310_WAKEUP_GPIO, 1);
+		if (rc) {
+			pr_err("%s: Unable to set direction\n", __func__);
+			goto free_gpio;
+		}
+
+		rc = gpio_request(ES310_MIC1_GPIO, "es310_mic1_gpio");
+		if (rc) {
+			pr_err("%s: unable to request gpio %d (%d)\n",
+					__func__, ES310_MIC1_GPIO, rc);
+			return rc;
+		}
+
+		rc = gpio_direction_output(ES310_MIC1_GPIO, 1);
+		if (rc) {
+			pr_err("%s: Unable to set direction\n", __func__);
+			goto free_gpio;
+		}
+		
+		rc = gpio_request(ES310_MIC2_GPIO, "es310_mic2_gpio");
+		if (rc) {
+			pr_err("%s: unable to request gpio %d (%d)\n",
+					__func__, ES310_MIC2_GPIO, rc);
+			return rc;
+		}
+
+		rc = gpio_direction_output(ES310_MIC2_GPIO, 1);
+		if (rc) {
+			pr_err("%s: Unable to set direction\n", __func__);
+			goto free_gpio;
+		}		
+
+		es310_xo_d1 = msm_xo_get(MSM_XO_TCXO_D1, "es310");
+		if (IS_ERR(es310_xo_d1)) {
+			rc = PTR_ERR(es310_xo_d1);
+			pr_err("%s: failed to get the handle for D1(%d)\n",
+							__func__, rc);
+			goto gpio_set_dir;
+		}
+
+		es310_supply = regulator_get(NULL, "8921_l16");
+		if (IS_ERR(es310_supply)) {
+			rc = PTR_ERR(es310_supply);
+			pr_debug("%s Failed to request supply: %d\n", __func__, rc);
+			goto err_regulator;
+		}    	
+	    rc = regulator_set_voltage(es310_supply, 3000000, 3000000);	
+		if (rc) {
+			pr_err("set_voltage reg_l16 failed, rc=%d\n", rc);
+			goto err_regulator;
+		}
+		
+	} else {
+		gpio_free(ES310_RESET_GPIO);
+		gpio_free(ES310_WAKEUP_GPIO);
+		gpio_free(ES310_MIC1_GPIO);
+		gpio_free(ES310_MIC2_GPIO);
+
+		msm_xo_put(es310_xo_d1);
+		regulator_put(es310_supply);
+	}
+
+	pr_debug("%s succes !!!!\n", __func__);
+
+	return 0;
+
+err_regulator:
+	regulator_put(es310_supply);
+gpio_set_dir:	  
+	gpio_set_value(ES310_RESET_GPIO, 0);
+	gpio_set_value(ES310_WAKEUP_GPIO,0);
+	gpio_set_value(ES310_MIC1_GPIO, 1);
+	gpio_set_value(ES310_MIC2_GPIO,1);	
+free_gpio:
+	gpio_free(ES310_RESET_GPIO);
+	gpio_free(ES310_WAKEUP_GPIO);
+	gpio_free(ES310_MIC1_GPIO);
+	gpio_free(ES310_MIC2_GPIO);	
+	return rc;
+}
+
+
+static struct es310_platform_data es310_pdata = {
+	.reset_gpio = ES310_RESET_GPIO,
+	.wakeup_gpio = ES310_WAKEUP_GPIO,
+	.mic1_gpio = ES310_MIC1_GPIO,
+	.mic2_gpio = ES310_MIC2_GPIO,
+	
+	.power_on = es310_power,
+	.dev_setup = es310_dev_setup,
+	.aud_clk = es310_aud_clk, 
+	.read_fw_bin = true, 
+};
+
+static struct i2c_board_info audio_i2c_es310_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("audience_es310", 0x3E),
+		.platform_data = &es310_pdata,
+	},	
+};
+
+
+
+
+#define EXT_AMP_SPK_PWR_EN_GPIO	PM8921_GPIO_PM_TO_SYS(18)
+#define EXT_AMP_RST_GPIO		PM8921_GPIO_PM_TO_SYS(19)
+#define EXT_AMP_RCV_SWITCH_GPIO	PM8921_GPIO_PM_TO_SYS(16)
+
+static struct regulator *yda160_supply;
+
+static int yda160_power(int on)
+{
+	int ret = 0;
+
+    gpio_set_value(EXT_AMP_SPK_PWR_EN_GPIO, !!on);
+    gpio_set_value(EXT_AMP_RST_GPIO, !!on);
+    gpio_set_value(EXT_AMP_RCV_SWITCH_GPIO, !!on);
+
+    ret = regulator_enable(yda160_supply);
+	if (ret != 0) {
+		pr_err("%s: Failed to enable supply : %d\n",
+				__func__, ret);
+		goto err_power;
+	}
+
+	pr_debug("%s succes !!!!\n", __func__);
+	return 0;
+
+
+err_power:
+	gpio_set_value(EXT_AMP_SPK_PWR_EN_GPIO, !on);	
+	gpio_set_value(EXT_AMP_RST_GPIO, !on);	
+	gpio_set_value(EXT_AMP_RCV_SWITCH_GPIO, !on);		
+
+	return ret;
+}
+
+static int yda160_dev_setup(bool enable)
+{
+	int rc = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    pr_debug("%s start: on=%d\n", __func__, enable);
+
+	if (enable == true) {
+		rc = gpio_request(EXT_AMP_SPK_PWR_EN_GPIO, "EXT_AMP_SPK_PWR_EN_GPIO");
+	    if(rc) {
+			pr_err("request gpio 18 failed, rc=%d\n", rc);
+			return rc;
+	    }
+
+		rc = gpio_request(EXT_AMP_RST_GPIO, "EXT_AMP_RST_GPIO");
+		if(rc) {
+			pr_err("request gpio 19 failed, rc=%d\n", rc);
+			return rc;
+		}
+		
+		rc = gpio_request(EXT_AMP_RCV_SWITCH_GPIO, "EXT_AMP_RCV_SWITCH_GPIO");
+		if(rc) {
+			pr_err("request gpio 16 failed, rc=%d\n", rc);
+			return rc;
+		}
+
+		rc = gpio_direction_output(EXT_AMP_SPK_PWR_EN_GPIO, 1);
+		if (rc) {
+			pr_err("%s: Unable to set direction\n", __func__);
+			goto free_gpio;
+		}
+
+		rc = gpio_direction_output(EXT_AMP_RST_GPIO, 1);
+		if (rc) {
+			pr_err("%s: Unable to set direction\n", __func__);
+			goto free_gpio;
+		}
+
+		rc = gpio_direction_output(EXT_AMP_RCV_SWITCH_GPIO, 1);
+		if (rc) {
+			pr_err("%s: Unable to set direction\n", __func__);
+			goto free_gpio;
+		}
+
+		yda160_supply = regulator_get(NULL, "8921_l16");
+		if (IS_ERR(yda160_supply)) {
+			rc = PTR_ERR(yda160_supply);
+			pr_debug("%s Failed to request supply: %d\n", __func__, rc);
+			goto free_gpio;
+		}    	
+	    rc = regulator_set_voltage(yda160_supply, 3000000, 3000000);	
+		if (rc) {
+			pr_err("set_voltage reg_l16 failed, rc=%d\n", rc);
+			goto err_regulator;
+		}		
+		
+	} else {
+		gpio_free(EXT_AMP_SPK_PWR_EN_GPIO);
+		gpio_free(EXT_AMP_RST_GPIO);
+		gpio_free(EXT_AMP_RCV_SWITCH_GPIO);
+
+		regulator_put(yda160_supply);
+	}
+
+	pr_debug("%s succes !!!!\n", __func__);
+
+	return 0;
+
+
+err_regulator:
+	regulator_put(yda160_supply);
+free_gpio:
+	gpio_free(EXT_AMP_SPK_PWR_EN_GPIO);
+	gpio_free(EXT_AMP_RST_GPIO);
+	gpio_free(EXT_AMP_RCV_SWITCH_GPIO);
+
+	return rc;
+}
+
+
+static struct yda160_platform_data yda160_pdata = {
+	.reset_gpio = EXT_AMP_RST_GPIO,
+	.spk_pwr_en_gpio = EXT_AMP_SPK_PWR_EN_GPIO,
+	.rcv_switch_gpio = EXT_AMP_RCV_SWITCH_GPIO,
+	
+	.power_on = yda160_power,
+	.dev_setup = yda160_dev_setup,	
+
+};
+
+
+
+static struct i2c_board_info audio_i2c_yda160_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("yamaha_yda160", 0x6C),
+		.platform_data = &yda160_pdata,
+	},
+};
+
+
+
+
+
+static struct st21nfca_i2c_platform_data st21nfca= {
+	.irq_gpio = ST21NFCA_WAKEUP_GPIO,
+};
+static struct i2c_board_info __initdata nfc_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("st21nfca", ST21NFCA_I2C_ADDRESS),
+		.platform_data = &st21nfca,
+		.flags = I2C_CLIENT_WAKE,
+	},
+};
+
+
+
 /* Sensors DSPS platform data */
 #ifdef CONFIG_MSM_DSPS
 #define DSPS_PIL_GENERIC_NAME		"dsps"
+
+
+
+static struct dsps_gpio_info dsps_gpios[] = {
+    {
+        .name = "compass_rst_n",
+        .num = 53,
+        .on_val = 1,
+        .off_val = 0,
+    },
+};
+
+
 #endif /* CONFIG_MSM_DSPS */
 
 static void __init msm8960_init_dsps(void)
@@ -2909,8 +3605,16 @@ static void __init msm8960_init_dsps(void)
 	struct msm_dsps_platform_data *pdata =
 		msm_dsps_device.dev.platform_data;
 	pdata->pil_name = DSPS_PIL_GENERIC_NAME;
-	pdata->gpios = NULL;
-	pdata->gpios_num = 0;
+
+
+
+	pdata->gpios = dsps_gpios;
+	pdata->gpios_num = ARRAY_SIZE(dsps_gpios);
+
+
+
+
+
 
 	platform_device_register(&msm_dsps_device);
 #endif /* CONFIG_MSM_DSPS */
@@ -2942,6 +3646,36 @@ out:
 	mutex_unlock(&hsic_status_lock);
 }
 EXPORT_SYMBOL(peripheral_disconnect);
+
+
+int msm8960_diag_check_sdcard(unsigned int *exist)
+{
+    unsigned int gpio_num = PM8921_GPIO_PM_TO_SYS(26);
+    int status;
+    int ret;
+
+    status = gpio_request(gpio_num, "DIAG_CHECK_SDCARD");
+    if (status) {
+        pr_err("%s: Fail to request GPIO SDCARD_DET\n", __func__);
+        return -1;
+    }
+
+    ret = gpio_direction_input(gpio_num);
+    if (ret != 0) {
+        gpio_free(gpio_num);
+        pr_err("%s: Fail to get GPIO SDCARD_DET value", __func__);
+        return -1;
+    }
+    ret = gpio_get_value_cansleep(gpio_num);
+
+    *exist = (unsigned int)ret;
+    gpio_free(gpio_num);
+
+    return 0;
+}
+EXPORT_SYMBOL(msm8960_diag_check_sdcard);
+
+
 
 static void __init msm8960_init_smsc_hub(void)
 {
@@ -2987,6 +3721,33 @@ static struct i2c_board_info isl_charger_i2c_info[] __initdata = {
 };
 #endif /* CONFIG_ISL9519_CHARGER */
 
+
+struct backlight_platform_data {
+   void (*platform_init)(void);
+   int gpio;
+   unsigned int mode;
+   int max_current;
+   int init_on_boot;
+   int min_brightness;
+   int max_brightness;
+};
+
+#define PWM_SIMPLE_EN 0xA0
+
+static struct backlight_platform_data lm3530_data = {
+	.gpio = PM8921_GPIO_PM_TO_SYS(24),
+	.max_current = 0x15,
+	.min_brightness = 0x45,
+	.max_brightness = 0x7F,
+};
+
+static struct i2c_board_info msm_i2c_backlight_info[] = {
+	{
+		I2C_BOARD_INFO("lm3530", 0x38),
+		.platform_data = &lm3530_data,
+	}
+};
+
 static struct i2c_board_info liquid_io_expander_i2c_info[] __initdata = {
 	{
 		I2C_BOARD_INFO("sx1508q", 0x20),
@@ -2995,6 +3756,14 @@ static struct i2c_board_info liquid_io_expander_i2c_info[] __initdata = {
 };
 
 static struct i2c_registry msm8960_i2c_devices[] __initdata = {
+
+	{
+		I2C_SURF ,
+		MSM_8960_GSBI1_QUP_I2C_BUS_ID,
+		nfc_i2c_boardinfo,
+		ARRAY_SIZE(nfc_i2c_boardinfo),
+	},
+
 #ifdef CONFIG_ISL9519_CHARGER
 	{
 		I2C_LIQUID,
@@ -3003,11 +3772,47 @@ static struct i2c_registry msm8960_i2c_devices[] __initdata = {
 		ARRAY_SIZE(isl_charger_i2c_info),
 	},
 #endif /* CONFIG_ISL9519_CHARGER */
+
+
 	{
-		I2C_SURF | I2C_FFA | I2C_FLUID,
+		I2C_SURF ,
+		MSM_8960_GSBI3_QUP_I2C_BUS_ID,
+		mxt224E_info,
+		ARRAY_SIZE(mxt224E_info),
+	},	
+
+
+	{
+		I2C_SURF,
+		MSM_8960_GSBI8_QUP_I2C_BUS_ID,
+		audio_i2c_yda160_boardinfo,
+		ARRAY_SIZE(audio_i2c_yda160_boardinfo),
+	},
+
+
+	{
+		I2C_SURF,
+		MSM_8960_GSBI8_QUP_I2C_BUS_ID,
+		audio_i2c_es310_boardinfo,
+		ARRAY_SIZE(audio_i2c_es310_boardinfo),
+	},
+
+
+
+
+
+
+
+
+
+
+{
+		0,
 		MSM_8960_GSBI3_QUP_I2C_BUS_ID,
 		cyttsp_info,
 		ARRAY_SIZE(cyttsp_info),
+
+		
 	},
 	{
 		I2C_LIQUID,
@@ -3015,6 +3820,8 @@ static struct i2c_registry msm8960_i2c_devices[] __initdata = {
 		mxt_device_info,
 		ARRAY_SIZE(mxt_device_info),
 	},
+
+
 	{
 		I2C_SURF | I2C_FFA | I2C_LIQUID,
 		MSM_8960_GSBI10_QUP_I2C_BUS_ID,
@@ -3036,6 +3843,14 @@ static struct i2c_registry msm8960_i2c_devices[] __initdata = {
 };
 #endif /* CONFIG_I2C */
 
+static int m7system_board_revision;
+
+inline int get_m7system_board_revision(void)
+{
+	return m7system_board_revision;
+}
+
+
 static void __init register_i2c_devices(void)
 {
 #ifdef CONFIG_I2C
@@ -3048,10 +3863,22 @@ static void __init register_i2c_devices(void)
 		msm8960_camera_board_info.board_info,
 		msm8960_camera_board_info.num_i2c_board_info,
 	};
+
+
+	struct i2c_registry msm8960_camera_i2c_devices_sub = {
+		I2C_SURF | I2C_FFA | I2C_FLUID | I2C_LIQUID | I2C_RUMI,
+		MSM_8960_GSBI4_QUP_I2C_BUS_ID,
+		msm8960_camera_board_info_sub.board_info,
+		msm8960_camera_board_info_sub.num_i2c_board_info,
+	};
+
+
 #endif
 
 	/* Build the matching 'supported_machs' bitmask */
-	if (machine_is_msm8960_cdp())
+
+	if (machine_is_msm8960_cdp() || machine_is_msm8960_gg3() )
+
 		mach_mask = I2C_SURF;
 	else if (machine_is_msm8960_rumi3())
 		mach_mask = I2C_RUMI;
@@ -3086,14 +3913,70 @@ static void __init register_i2c_devices(void)
 	if (!mhl_platform_data.gpio_mhl_power)
 		pr_debug("mhl device configured for ext debug board\n");
 
+
+
+	if(m7system_board_revision == 3 || m7system_board_revision >= 8) 
+	{
+		if (I2C_SURF & mach_mask)
+			i2c_register_board_info(MSM_8960_GSBI3_QUP_I2C_BUS_ID,msm_i2c_backlight_info,ARRAY_SIZE(msm_i2c_backlight_info));
+	}
+
+
+	
 #ifdef CONFIG_MSM_CAMERA
 	if (msm8960_camera_i2c_devices.machs & mach_mask)
 		i2c_register_board_info(msm8960_camera_i2c_devices.bus,
 			msm8960_camera_i2c_devices.info,
 			msm8960_camera_i2c_devices.len);
+
+
+	if (msm8960_camera_i2c_devices_sub.machs & mach_mask)
+		i2c_register_board_info(msm8960_camera_i2c_devices_sub.bus,
+			msm8960_camera_i2c_devices_sub.info,
+			msm8960_camera_i2c_devices_sub.len);
+
+
 #endif
 #endif
 }
+
+
+
+
+
+static int board_board_revision_setup(char *revision_info)
+{
+	char *revision_str[] = {
+		"",
+		"revision_V1A",
+		"revision_V2A",
+		"revision_V3A",
+		"revision_V4A",
+		"revision_V5A",
+		"revision_V6A",
+		"revision_V7A",
+		"revision_V8A",
+		"revision_V9A",
+		"revision_V10A",
+	};
+	int i;
+
+	m7system_board_revision = M7SYSTEM_REV_MAX;
+	
+	for (i = 0; i < M7SYSTEM_REV_MAX; i++) {
+		if (!strcmp(revision_info, revision_str[i])) {
+			m7system_board_revision = i;
+			break;
+		}
+	}	
+
+	printk(KERN_INFO "board revision: %s\n", revision_str[m7system_board_revision]);
+
+	return 1;
+}
+
+__setup("board.revision=", board_board_revision_setup);
+
 
 static void __init msm8960_sim_init(void)
 {
@@ -3120,9 +4003,10 @@ static void __init msm8960_sim_init(void)
 	msm8960_pm8921_gpio_mpp_init();
 	platform_add_devices(sim_devices, ARRAY_SIZE(sim_devices));
 
-	msm8960_device_qup_spi_gsbi1.dev.platform_data =
-				&msm8960_qup_spi_gsbi1_pdata;
-	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
+
+
+
+
 
 	msm8960_init_mmc();
 	msm8960_init_fb();
@@ -3142,9 +4026,11 @@ static void __init msm8960_rumi3_init(void)
 	platform_device_register(&msm8960_device_rpm_regulator);
 	msm8960_init_gpiomux();
 	msm8960_init_pmic();
-	msm8960_device_qup_spi_gsbi1.dev.platform_data =
-				&msm8960_qup_spi_gsbi1_pdata;
-	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
+
+
+
+
+
 	msm8960_i2c_init();
 	msm_spm_init(msm_spm_data, ARRAY_SIZE(msm_spm_data));
 	msm_spm_l2_init(msm_spm_l2_data);
@@ -3194,9 +4080,10 @@ static void __init msm8960_cdp_init(void)
 					machine_is_msm8960_liquid())
 		msm_device_hsic_host.dev.parent = &smsc_hub_device.dev;
 	msm8960_init_gpiomux();
-	msm8960_device_qup_spi_gsbi1.dev.platform_data =
-				&msm8960_qup_spi_gsbi1_pdata;
-	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
+
+
+
+
 
 	msm8960_init_pmic();
 	if ((SOCINFO_VERSION_MAJOR(socinfo_get_version()) >= 2 &&
@@ -3235,7 +4122,29 @@ static void __init msm8960_cdp_init(void)
 	msm8960_init_mmc();
 	if (machine_is_msm8960_liquid())
 		mxt_init_hw_liquid();
+ 
+
+
+	mxt224E_init();
+
+
+#if defined(CONFIG_DVE068_WIRELESS_CHG)
+    gg3_ext_charger_init();
+#endif     
 	register_i2c_devices();
+
+
+
+	gg3_virtual_keys_init();
+
+
+
+	add_ramconsole_devices();
+
+
+	add_fatal_info_handler_devices();
+
+
 	msm8960_init_fb();
 	slim_register_board_info(msm_slim_devices,
 		ARRAY_SIZE(msm_slim_devices));
@@ -3311,6 +4220,17 @@ MACHINE_START(MSM8960_FLUID, "QCT MSM8960 FLUID")
 MACHINE_END
 
 MACHINE_START(MSM8960_LIQUID, "QCT MSM8960 LIQUID")
+	.map_io = msm8960_map_io,
+	.reserve = msm8960_reserve,
+	.init_irq = msm8960_init_irq,
+	.handle_irq = gic_handle_irq,
+	.timer = &msm_timer,
+	.init_machine = msm8960_cdp_init,
+	.init_early = msm8960_allocate_memory_regions,
+	.init_very_early = msm8960_early_memory,
+	.restart = msm_restart,
+MACHINE_END
+MACHINE_START(MSM8960_DVE068, "QCT MSM8960 DVE068")
 	.map_io = msm8960_map_io,
 	.reserve = msm8960_reserve,
 	.init_irq = msm8960_init_irq,
